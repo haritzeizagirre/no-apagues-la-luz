@@ -296,7 +296,7 @@ class CharSelectScene(BaseScene):
             r = pygame.Rect(24 + (i % 3) * 100, my + (i // 3) * 24, 94, 20)
             unlocked = self.app.save.has(f"mutator:{m['id']}")
             active = m["id"] in self.mut_sel
-            if g.button(r, ("✦ " if active else "") + m["name"], f"m{i}", size=9, en=unlocked):
+            if g.button(r, ("• " if active else "") + m["name"], f"m{i}", size=9, en=unlocked):
                 if m["id"] in self.mut_sel:
                     self.mut_sel.remove(m["id"])
                 else:

@@ -259,7 +259,7 @@ class Fonts:
     # glifos que las fuentes pixel no traen: se sustituyen al medir/renderizar (jamás tofu).
     GLYPH_FALLBACK = {
         "▶": "»", "►": "»", "◀": "«", "◄": "«",
-        "✕": "×", "✓": "•", "✔": "OK",
+        "✕": "X", "×": "x", "✓": "•", "✔": "OK",
         "✦": "*", "★": "*", "◆": "*",
         "↔": "<->", "→": "»", "↑": "^", "↓": "v", "🗡": "X",
     }

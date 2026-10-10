@@ -486,7 +486,7 @@ class RunScene(Scene):
             bar(surf, (K.W // 2 - 130, 22, 260, 10), b.hp / max(1.0, b.max_hp), K.C["rojo"], r=2)
         # incidencias activas
         if w.dark_bonus_t > 0:
-            f.text(surf, "◆ APAGÓN", (K.W // 2, 40), size=11, color=K.C["morado_claro"], anchor="center", shadow=True)
+            f.text(surf, "¡APAGÓN!", (K.W // 2, 40), size=11, color=K.C["morado_claro"], anchor="center", shadow=True)
 
     def _draw_intro(self, surf):
         a = clamp(self.intro_t / 1.2, 0, 1)
