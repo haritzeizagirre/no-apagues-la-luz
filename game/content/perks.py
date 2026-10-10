@@ -1,0 +1,53 @@
+"""Cartas de subida de nivel: stats genéricos + especiales ligadas a armas."""
+from __future__ import annotations
+
+PERKS = [
+    # --- genéricas
+    dict(id="g_dmg", name="Fuerza laboral", desc="+8% Daño", stats=dict(dmg=0.08), icon="ic_s_dmg", weight=10, max=5),
+    dict(id="g_atk", name="Piloto automático", desc="+7% Vel. ataque", stats=dict(atk_speed=0.07), icon="ic_s_atk", weight=10, max=5),
+    dict(id="g_speed", name="Zapatos cómodos", desc="+6% Velocidad", stats=dict(speed=0.06), icon="ic_s_speed", weight=9, max=5),
+    dict(id="g_hp", name="Corcho protector", desc="+12 Vida máx.", stats=dict(hp=12), icon="ic_s_hp", weight=9, max=6),
+    dict(id="g_regen", name="Café cargado", desc="+0.35 Regeneración", stats=dict(regen=0.35), icon="ic_s_regen", weight=6, max=4),
+    dict(id="g_armor", name="Carcasa gruesa", desc="+1 Armadura", stats=dict(armor=1), icon="ic_s_armor", weight=6, max=4),
+    dict(id="g_dodge", name="Reflejos de oficina", desc="+3% Esquiva", stats=dict(dodge=0.03), icon="ic_s_dodge", weight=5, max=4),
+    dict(id="g_crit", name="Ojo clínico", desc="+3% Crítico", stats=dict(crit=0.03), icon="ic_s_crit", weight=6, max=5),
+    dict(id="g_critdmg", name="Trazo firme", desc="+12% Daño crítico", stats=dict(crit_dmg=0.12), icon="ic_s_critdmg", weight=5, max=4),
+    dict(id="g_pickup", name="Tiraimán", desc="+15% Imán", stats=dict(pickup=0.15), icon="ic_s_pickup", weight=6, max=4),
+    dict(id="g_luck", name="Trébol de chincheta", desc="+6% Suerte", stats=dict(luck=0.06), icon="ic_s_luck", weight=5, max=3),
+    dict(id="g_coin", name="Nota de gastos", desc="+10% Monedas", stats=dict(coin_gain=0.10), icon="ic_s_coin", weight=7, max=4),
+    dict(id="g_xp", name="Diario personal", desc="+8% Recuerdos", stats=dict(xp_gain=0.08), icon="ic_s_xp", weight=6, max=3),
+    dict(id="g_light", name="Bombilla nueva", desc="+9% Luz", stats=dict(light=0.09), icon="ic_s_light", weight=7, max=5),
+    dict(id="g_kb", name="Empujón sano", desc="+20% Empuje", stats=dict(kb=0.20), icon="ic_s_kb", weight=5, max=3),
+    dict(id="g_thorn", name="FILO", desc="+3 Espinas", stats=dict(thorn=3), icon="ic_s_thorn", weight=4, max=3),
+    dict(id="g_lifesteal", name="Vampirismo de oficina", desc="+2% Robo de vida", stats=dict(lifesteal=0.02), icon="ic_s_lifesteal", weight=4, max=3),
+    dict(id="g_pierce", name="Grapas gordas", desc="+1 Perforación", stats=dict(pierce_add=1), icon="ic_s_pierce", weight=3, max=3),
+    dict(id="g_proj", name="Multiplexor", desc="+1 Proyectiles", stats=dict(proj_add=1), icon="ic_s_proj", weight=1, max=2),
+    dict(id="g_fogonazo", name="Enchufe rápido", desc="Fogonazo: -8% recarga", stats=dict(abl_cd=-0.08), icon="ic_s_light", weight=5, max=4),
+    # --- especiales (requieren arma)
+    dict(id="sp_grapadora", name="Grapado doble", desc="Grapadora: +25% daño y recarga",
+         wmod=dict(weapon="grapadora", dmg=0.25, cd=0.08), req="grapadora", icon="ic_w_grapadora", weight=8, max=1),
+    dict(id="sp_rotulador", name="Trazo grueso", desc="Rotulador: +1 trazo por disparo",
+         wmod=dict(weapon="rotulador", param=dict(count=1)), req="rotulador", icon="ic_w_rotulador", weight=8, max=1),
+    dict(id="sp_regla", name="Reglazo", desc="Regla: +18% alcance y +15% daño",
+         wmod=dict(weapon="regla", dmg=0.15, param_pct=dict(radius=0.18)), req="regla", icon="ic_w_regla", weight=8, max=1),
+    dict(id="sp_clips", name="Clip maestro", desc="Clips: +2 rebotes y +15% daño",
+         wmod=dict(weapon="clips", dmg=0.15, param=dict(bounces=2)), req="clips", icon="ic_w_clips", weight=8, max=1),
+    dict(id="sp_tijeras", name="Filo de precisión", desc="Tijeras: +30% daño",
+         wmod=dict(weapon="tijeras", dmg=0.30), req="tijeras", icon="ic_w_tijeras", weight=8, max=1),
+    dict(id="sp_cafe", name="Café doble", desc="Café: +1 taza y +20% quemadura",
+         wmod=dict(weapon="cafe", param=dict(count=1), dot=0.20), req="cafe", icon="ic_w_cafe", weight=8, max=1),
+    dict(id="sp_cable", name="Alta tensión", desc="Cable: +1 salto y +15% daño",
+         wmod=dict(weapon="cable", dmg=0.15, param=dict(hops=1)), req="cable", icon="ic_w_cable", weight=8, max=1),
+    dict(id="sp_radio", name="Subwoofer", desc="Radio: +15% radio y +20% daño",
+         wmod=dict(weapon="radio", dmg=0.20, param_pct=dict(radius=0.15)), req="radio", icon="ic_w_radio", weight=8, max=1),
+    dict(id="sp_toner", name="Tinta extra", desc="Tóner: +1 chorro",
+         wmod=dict(weapon="toner", param=dict(count=1)), req="toner", icon="ic_w_toner", weight=8, max=1),
+    dict(id="sp_laser", name="Puntero profesional", desc="Láser: +25% daño por segundo",
+         wmod=dict(weapon="laser", dmg=0.25), req="laser", icon="ic_w_laser", weight=8, max=1),
+    dict(id="sp_sello", name="Sello inapelable", desc="Sello: +15% radio y +25% daño",
+         wmod=dict(weapon="sello", dmg=0.25, param_pct=dict(radius=0.15)), req="sello", icon="ic_w_sello", weight=8, max=1),
+    dict(id="sp_movil", name="Modo vibración extrema", desc="Móvil: -15% recarga y +15% daño",
+         wmod=dict(weapon="movil", dmg=0.15, cd=0.15), req="movil", icon="ic_w_movil", weight=8, max=1),
+]
+
+BY_ID = {p["id"]: p for p in PERKS}

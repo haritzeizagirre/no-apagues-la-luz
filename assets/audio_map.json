@@ -1,0 +1,28 @@
+{
+ "sfx": {
+  "hit_enemy": "audio_kenney/impact-sounds/impactGeneric_light_001.ogg",
+  "hit_crit": "audio_kenney/impact-sounds/impactPunch_medium_001.ogg",
+  "enemy_die": "audio_kenney/impact-sounds/impactSoft_medium_001.ogg",
+  "enemy_die_big": "audio_kenney/impact-sounds/impactSoft_heavy_001.ogg",
+  "explosion_small": "audio_kenney/sci-fi-sounds/explosionCrunch_001.ogg",
+  "explosion_big": "audio_kenney/sci-fi-sounds/lowFrequency_explosion_001.ogg",
+  "crate_break": "audio_kenney/impact-sounds/impactWood_heavy_001.ogg",
+  "ui_click": "audio_kenney/interface-sounds/click_002.ogg",
+  "ui_hover": "audio_kenney/interface-sounds/tick_001.ogg",
+  "ui_deny": "audio_kenney/interface-sounds/error_002.ogg",
+  "shop_buy": "audio_kenney/interface-sounds/confirmation_002.ogg",
+  "shop_reroll": "audio_kenney/interface-sounds/switch_003.ogg",
+  "merge": "audio_kenney/impact-sounds/impactMining_001.ogg",
+  "player_hurt": "audio_kenney/impact-sounds/impactPunch_heavy_001.ogg",
+  "pickup_heal": "audio_kenney/interface-sounds/confirmation_004.ogg"
+ },
+ "music": {
+  "menu": "music_ext/EmptyCity.ogg",
+  "combat": "music_ext/Juhani Junkala [Retro Game Music Pack] Level 1.ogg",
+  "combat2": "music_ext/Juhani Junkala [Retro Game Music Pack] Level 2.ogg",
+  "combat3": "music_ext/Juhani Junkala [Retro Game Music Pack] Level 3.ogg",
+  "boss": "music_ext/CleytonRX - Battle RPG Theme Var_0.ogg",
+  "victory": "music_ext/victory2_0.ogg"
+ },
+ "_nota": "Generado por tools/curate_audio.py — Kenney CC0 + OpenGameArt CC0"
+}

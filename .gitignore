@@ -1,0 +1,10 @@
+# .gitignore — NO APAGUES LA LUZ
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+build/
+dist/
+*.spec
+assets/raw_downloads/
+crash_*.txt
