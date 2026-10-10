@@ -57,6 +57,7 @@ def main() -> int:
         report["selftest"]["error"] = f"{type(e).__name__}: {e}"
 
     # 2) arranque real de ventana
+    t_start = time.time() - 2
     subprocess.run(["taskkill", "/F", "/IM", os.path.basename(EXE)], capture_output=True)
     proc = subprocess.Popen([EXE])
     time.sleep(11)
@@ -71,10 +72,14 @@ def main() -> int:
     except Exception:
         pass
 
-    # 3) crash log
+    # 3) crash log: solo cuenta como fallo si es NUEVO (posterior al arranque de esta verificación)
     crash = os.path.join(os.environ.get("APPDATA", ""), "NoApaguesLaLuz", "crash.txt")
+    crash_nuevo = False
+    if os.path.exists(crash):
+        crash_nuevo = os.path.getmtime(crash) >= t_start
     report["crash_txt"] = os.path.exists(crash)
-    ok = bool(report["selftest"].get("ok")) and report["ventana"]["proceso_vivo"] and bool(report["ventana"]["ventanas"]) and not report["crash_txt"]
+    report["crash_nuevo"] = crash_nuevo
+    ok = bool(report["selftest"].get("ok")) and report["ventana"]["proceso_vivo"] and bool(report["ventana"]["ventanas"]) and not crash_nuevo
     report["ok"] = ok
     print(json.dumps(report, ensure_ascii=False, indent=1))
     return 0 if ok else 1

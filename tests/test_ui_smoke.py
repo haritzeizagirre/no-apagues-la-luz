@@ -81,3 +81,62 @@ def test_all_scenes_leave_without_crash(app):
         app.frame()
     app.set_scene("menu")
     app.frame()
+
+
+class _FakeClock:
+    def tick(self, ms=0):
+        return 16
+
+
+def _sweep(app, scene_name, steps_y=7, steps_x=11, setup=None):
+    """Barre el ratón por la pantalla: caza crashes de hover/tooltips en cualquier widget."""
+    app.set_scene(scene_name)
+    if setup:
+        setup(app)
+    saved_clock = app.clock
+    app.clock = _FakeClock()
+    try:
+        for gy in range(steps_y):
+            for gx in range(steps_x):
+                pos = (gx * 60 + 25, gy * 50 + 22)
+                app.mouse = (lambda p: (lambda: p))(pos)
+                app.frame()
+    finally:
+        app.clock = saved_clock
+
+
+def test_mouse_sweep_menus(app):
+    for name in SCENES:
+        _sweep(app, name)
+    app.set_scene("menu")
+
+
+def test_mouse_sweep_run_states(app):
+    def to_levelup(a):
+        s = a.scene
+        s.world.pending_levels = 1
+        s.world.phase = "levelup"
+        s.cards = s.world.roll_levelup_cards()
+
+    def to_shop(a):
+        s = a.scene
+        s.cards = None
+        s.world.pending_levels = 0
+        s.world.phase = "active"
+        s.world._end_wave()
+
+    def to_paused(a):
+        a.scene.paused = True
+
+    def to_end(a):
+        s = a.scene
+        s.paused = False
+        s.world.leave_shop()
+        s.world._finish(victory=False)
+
+    _sweep(app, "run", setup=lambda a: a.set_scene("run", char_id="lia", guardia=1, mut_ids=[], seed=3), steps_x=8, steps_y=5)
+    _sweep(app, "run", setup=to_levelup, steps_x=8, steps_y=5)
+    _sweep(app, "run", setup=to_shop, steps_x=8, steps_y=5)
+    _sweep(app, "run", setup=to_paused, steps_x=8, steps_y=5)
+    _sweep(app, "run", setup=to_end, steps_x=8, steps_y=5)
+    app.set_scene("menu")

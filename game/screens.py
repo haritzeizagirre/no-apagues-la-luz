@@ -292,8 +292,12 @@ class CharSelectScene(BaseScene):
             if not unlocked:
                 self.app.screen.blit(I.get_icon("ic_ui_lock"), (r.x + 2, r.y + 3))
             if r.collidepoint(g.mouse):
-                g.tooltip(r, m["name"], f.wrap(m["desc"], "vt", 11, 190) +
-                          ([f"Sello: {ACH.BY_ID[m['unlock']]['name']}"] if m.get("unlock") and not unlocked else []))
+                lines = f.wrap(m["desc"], "vt", 11, 190)
+                if m.get("unlock") and not unlocked:
+                    seal = next((a["name"] for a in ACH.ACHIEVEMENTS if a.get("unlock") == m["unlock"]), None)
+                    if seal:
+                        lines.append(f"Sello: {seal}")
+                g.tooltip(r, m["name"], lines)
         # empezar
         start = pygame.Rect(24, K.H - 44, 200, 30)
         if g.button(start, "▶ EMPEZAR LA NOCHE", "start", size=12):

@@ -10,7 +10,7 @@ from pathlib import Path
 
 TITLE = "NO APAGUES LA LUZ"
 SUBTITLE = "el turno de las sombras"
-VERSION = "1.0.0"
+VERSION = "1.0.1"
 
 W, H = 640, 360
 ARENA_W, ARENA_H = 1024, 576

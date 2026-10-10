@@ -19,6 +19,8 @@ class GUI:
         self.click = False
         self.down = False
         self._hot = None
+        self._hover_snd = None
+        self._hover_hit = False
         self._tooltip = None
         self._t = 0.0
 
@@ -27,6 +29,9 @@ class GUI:
         self.click = self.app.input.mouse_clicked
         self.down = self.app.input.mouse_down
         self._hot = None
+        if not self._hover_hit:
+            self._hover_snd = None
+        self._hover_hit = False
         self._tooltip = None
         self._t = self.app.time
 
@@ -49,7 +54,9 @@ class GUI:
             self.app.audio.play("ui_deny")
 
     def hover_enter(self, key):
-        if self._hot != key:
+        self._hover_hit = True
+        if self._hover_snd != key:
+            self._hover_snd = key
             self.app.audio.play("ui_hover")
 
     def tooltip(self, rect, title, lines, accent=None):

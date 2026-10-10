@@ -53,8 +53,12 @@ class Audio:
         self._current_track: str | None = None
         self._duck_timer = 0.0
         self._duck_amount = 0.0
+        self._now = 0.0
+        self._last: dict[str, float] = {}
         try:
-            pygame.mixer.pre_init(22050, -16, 1, 256)
+            # 44100 estéreo: es la frecuencia nativa de los OGG de Kenney; con
+            # 22050 mono SDL_mixer se cuelga al reprocesar (access violation real).
+            pygame.mixer.pre_init(44100, -16, 2, 256)
             pygame.mixer.init()
             pygame.mixer.set_num_channels(28)
             self.enabled = True
@@ -129,18 +133,29 @@ class Audio:
         self._music_vol = max(0.0, min(1.0, vm * master))
 
     # ------------------------------------------------------------------ sfx
+    def _cooldown(self, name: str) -> float:
+        if name.startswith("ui_hover"):
+            return 0.08
+        if name in ("hit_enemy", "hit_crit", "enemy_die", "shoot_tack", "pickup_xp1"):
+            return 0.03
+        return 0.02
+
     def play(self, name: str, vol: float = 1.0, pitch: int = 0) -> None:
         if not self.enabled:
             return
         snd = self.sounds.get(name)
         if snd is None:
             return
-        ch = pygame.mixer.find_channel(True)
-        if ch is None:
+        if self._now - self._last.get(name, -9.0) < self._cooldown(name):
             return
-        base = SFX_BASE_VOL.get(name, 0.6)
-        ch.set_volume(max(0.0, min(1.0, base * vol * float(self.settings["vol_sfx"]) * float(self.settings["vol_master"]))))
-        ch.play(snd)
+        self._last[name] = self._now
+        try:
+            base = SFX_BASE_VOL.get(name, 0.6)
+            v = max(0.0, min(1.0, base * vol * float(self.settings["vol_sfx"]) * float(self.settings["vol_master"])))
+            snd.set_volume(v)
+            snd.play()
+        except pygame.error:
+            pass
 
     def play_xp(self, streak: int) -> None:
         """Blip de recuerdo con escalado por racha."""
@@ -184,6 +199,7 @@ class Audio:
         self._duck_amount = amount
 
     def update(self, dt: float) -> None:
+        self._now += dt
         if not self.enabled:
             return
         vol = getattr(self, "_music_vol", 0.7)
