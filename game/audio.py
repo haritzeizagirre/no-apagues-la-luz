@@ -2,7 +2,7 @@
 
 Resolución de cada sonido lógico (por prioridad):
   1) assets/audio_map.json  {"sfx": {logico: "ruta/relativa/a/assets"}, "music": {...}}
-  2) assets/sfx/<logico>.wav          (set sintetizado)
+  2) assets/sfx/<logico>.wav|.ogg     (set sintetizado; .ogg para el build web)
   3) assets/audio_kenney/<logico>.ogg (copia directa con el nombre lógico)
 Si nada existe, el sonido queda en silencio (y se reporta en missing()).
 """
@@ -88,6 +88,7 @@ class Audio:
             yield K.ASSETS / rel
         if kind == "sfx":
             yield K.SFX_DIR / f"{name}.wav"
+            yield K.SFX_DIR / f"{name}.ogg"   # build web (pygbag exige OGG)
             for ext in (".ogg", ".wav", ".mp3"):
                 yield K.ASSETS / "audio_kenney" / f"{name}{ext}"
         else:
