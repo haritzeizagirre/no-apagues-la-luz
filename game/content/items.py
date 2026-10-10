@@ -67,6 +67,20 @@ ITEMS = [
 
 BY_ID = {i["id"]: i for i in ITEMS}
 
+# nombres cortos para los huecos de la tienda
+SHORT = {
+    "taza_oficina": "Taza", "postis_pila": "Post-its", "grapa_suelta": "Grapa",
+    "chinchetas_caja": "Chinchetas", "cafe_maquina": "Café", "boligrafo": "Bolígrafo",
+    "teclado_mecanico": "Teclado", "raton_gamer": "Ratón", "auriculares": "Auriculares",
+    "sobre_nomina": "Nómina", "pila_alcalina": "Pila", "almohadilla": "Almohadilla",
+    "cactus_mini": "Cactus", "extintor_mini": "Extintor", "alfombrilla_xl": "Alfombrilla",
+    "silla_ergo": "Silla", "ventilador_bolsillo": "Ventilador", "usb3": "USB 3.0",
+    "calculadora": "Calculadora", "botiquin": "Botiquín", "flexo_extra": "Flexo extra",
+    "sello_urgente": "Sello", "grapadora_oro": "Grapa dorada", "alargador_pro": "Alargador",
+    "tarjeta_plata": "Tarjeta", "funda_antigolpe": "Funda", "multipresa": "Multipresa",
+    "diario": "Diario",
+}
+
 # pool inicial (sin desbloquear): tiers 1-2
 STARTER = [i["id"] for i in ITEMS if i["unlock"] is None]
 

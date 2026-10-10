@@ -83,6 +83,25 @@ WEAPONS = [
 ]
 
 BY_ID = {w["id"]: w for w in WEAPONS}
+
+# resúmenes para la tienda: (nombre corto, efecto en 1-2 líneas)
+SHORT = {
+    "grapadora": ("Grapadora", "Abanico de 3 grapas"),
+    "chinchetas": ("Chinchetas", "Abanico amplio"),
+    "cinta": ("Cinta", "Ralentiza y pega tinta"),
+    "rotulador": ("Rotulador", "Perfora en línea recta"),
+    "regla": ("Regla", "Arco cuerpo a cuerpo"),
+    "clips": ("Clips", "Rebotan por la sala"),
+    "tijeras": ("Tijeras", "Bumerán de ida y vuelta"),
+    "cafe": ("Café", "Charco ardiente en área"),
+    "cable": ("Cable", "Rayo en cadena"),
+    "radio": ("Radio", "Pulso sonoro en área"),
+    "toner": ("Tóner", "Nube tóxica (veneno)"),
+    "laser": ("Láser", "Haz continuo perforante"),
+    "sello": ("Sello", "Sellazo en área"),
+    "movil": ("Móvil", "Onda que empuja"),
+}
+
 STARTING_WEAPONS = ["grapadora", "chinchetas", "cinta", "rotulador", "regla", "clips"]
 
 MAX_WEAPON_LEVEL = 4

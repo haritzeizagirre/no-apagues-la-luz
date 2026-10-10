@@ -79,7 +79,7 @@ ARCHIVO_BLURB = "Bestiario de lo que despierta cuando te apagan."
 
 SELLOS_BLURB = "Cada sello es una noche que el Olvido no ganó."
 
-GUARDIA_BLURB = "Más guardia, más gloria, más Chispas. Y más dientes."
+GUARDIA_BLURB = "Más riesgo, más chispas"
 
 NEW_RUN_HINT = "Pulsa ENTER o haz clic para empezar la noche."
 

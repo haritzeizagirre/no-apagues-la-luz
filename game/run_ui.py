@@ -40,6 +40,7 @@ class RunScene(Scene):
         self.end_t = 0.0
         self.abandon_confirm = False
         self.shop_hover = None
+        self._pend_fs = False
 
     # ------------------------------------------------------------- entrada
     def enter(self, char_id="lia", guardia=1, mut_ids=None, seed=None, **kw):
@@ -66,7 +67,7 @@ class RunScene(Scene):
                 else:
                     self.paused = not self.paused
             elif ev.key == pygame.K_TAB and self.paused:
-                self.pause_tab = (self.pause_tab + 1) % 3
+                self.pause_tab = (self.pause_tab + 1) % 4
             elif self.paused and ev.key == pygame.K_TAB:
                 pass
         if self.paused and ev.type == pygame.KEYDOWN and ev.key == pygame.K_q:
@@ -77,6 +78,9 @@ class RunScene(Scene):
         w = self.world
         g = self.gui
         g.begin()
+        if self._pend_fs:
+            self._pend_fs = False
+            self.app.toggle_fullscreen()
         # eventos del mundo
         for ev in w.events:
             t = ev["type"]
@@ -181,34 +185,27 @@ class RunScene(Scene):
         # máquina expendedora decorativa a la izquierda
         vm = S.get("pp_vending")
         surf.blit(vm.n, (96, 60))
-        # ofertas
-        n = len(w.shop)
-        slot_w = 62
-        avail = 300
-        x0 = 190
+        # ofertas (nombre + efecto visibles dentro del hueco, sin tooltip)
+        slot_w = 88
+        x0 = 182
         for i, off in enumerate(w.shop):
-            r = pygame.Rect(x0 + i * (slot_w + 12), 66, slot_w, 92)
+            r = pygame.Rect(x0 + i * 95, 62, slot_w, 104)
             if off["kind"] == "weapon":
-                icon = I.get_icon(CW.BY_ID[off["id"]]["icon"])
-                label = CW.BY_ID[off["id"]]["name"].split()[0]
+                d = CW.BY_ID[off["id"]]
+                short, res = CW.SHORT.get(off["id"], (d["name"], d["desc"]))
                 border = K.C["azul_claro"]
-                tag = f"T{CW.BY_ID[off['id']]['tier']}"
+                extra = "Arma · fusiona 2 iguales para subir de nivel"
             else:
-                icon = I.get_icon(CI.BY_ID[off["id"]]["icon"])
-                label = CI.BY_ID[off["id"]]["name"].split()[0]
+                d = CI.BY_ID[off["id"]]
+                short, res = CI.SHORT.get(off["id"], d["name"]), d["desc"]
                 border = K.C["teal"]
-                tag = f"T{CI.BY_ID[off['id']]['tier']}"
+                extra = "Ítem pasivo"
+            icon = I.get_icon(d["icon"])
             afford = int(w.coins) >= off["price"]
-            clicked = g.icon_slot(r, icon, label, price=off["price"], en=afford, border=border,
-                                  tag=tag, sold=off["sold"])
+            clicked = g.icon_slot(r, icon, short, price=off["price"], en=afford, border=border,
+                                  tag=f"T{d['tier']}", sold=off["sold"], desc=res)
             if r.collidepoint(g.mouse):
-                full = CW.BY_ID[off["id"]] if off["kind"] == "weapon" else CI.BY_ID[off["id"]]
-                lines = self.app.fonts.wrap(full.get("desc", ""), "vt", 11, 200)
-                if off["kind"] == "weapon":
-                    lines = [f"Arma tier {CW.BY_ID[off['id']]['tier']} · comprada sube de nivel al fusionar"] + lines
-                else:
-                    lines = [f"Ítem tier {CI.BY_ID[off['id']]['tier']}"] + lines
-                g.tooltip(r, full["name"], lines)
+                g.tooltip(r, d["name"], [extra] + self.app.fonts.wrap(d.get("desc", ""), "vt", 11, 200))
             if clicked and not off["sold"]:
                 if not w.shop_buy(i):
                     self.app.audio.play("ui_deny")
@@ -278,10 +275,10 @@ class RunScene(Scene):
         ov.fill((6, 8, 16, 170))
         surf.blit(ov, (0, 0))
         g.panel((120, 30, 400, 300), "slab", "TURNO EN PAUSA")
-        tabs = ["ESTADO", "CONTROLES", "ARCHIVO"]
+        tabs = ["ESTADO", "CONTROLES", "ARCHIVO", "AJUSTES"]
         for i, tname in enumerate(tabs):
-            r = pygame.Rect(132 + i * 130, 52, 122, 20)
-            if g.button(r, tname, f"tab{i}", style="key", size=10, en=(self.pause_tab != i)):
+            r = pygame.Rect(132 + i * 96, 52, 90, 20)
+            if g.button(r, tname, f"tab{i}", style="key", size=9, en=(self.pause_tab != i)):
                 self.pause_tab = i
         if self.pause_tab == 0:
             y = 84
@@ -311,7 +308,7 @@ class RunScene(Scene):
                 self.app.fonts.text(surf, b, (250, y + k * 18), size=11, color=K.C["crema"])
             self.app.fonts.text(surf, "En penumbra haces 35% menos daño.", (140, y + 8 * 18 + 6), size=10,
                                 color=K.C["gris"])
-        else:
+        elif self.pause_tab == 2:
             y = 88
             i = 0
             for e in CE.ENEMIES + CE.BOSSES:
@@ -328,6 +325,22 @@ class RunScene(Scene):
                     surf.blit(I.get_icon("ic_ui_lock"), (x + 2, yy + 6))
                     self.app.fonts.text(surf, "———", (x + 18, yy + 2), size=9, color=K.C["gris_osc"])
                 i += 1
+        else:
+            # ajustes en caliente: volúmenes y opciones sin salir de la partida
+            s = self.app.settings
+            s["vol_master"] = g.slider(pygame.Rect(215, 96, 215, 12), s["vol_master"], "p1", "Volumen general")
+            s["vol_sfx"] = g.slider(pygame.Rect(215, 130, 215, 12), s["vol_sfx"], "p2", "Efectos")
+            s["vol_music"] = g.slider(pygame.Rect(215, 164, 215, 12), s["vol_music"], "p3", "Música")
+            s["shake"] = g.toggle(pygame.Rect(215, 178, 215, 22), "Vibración de pantalla", s["shake"], "p4")
+            s["dmg_numbers"] = g.toggle(pygame.Rect(215, 202, 215, 22), "Números de daño", s["dmg_numbers"], "p5")
+            s["flash"] = g.toggle(pygame.Rect(215, 226, 215, 22), "Destellos de pantalla", s["flash"], "p6")
+            if g.button(pygame.Rect(215, 252, 215, 22),
+                        f"PANTALLA COMPLETA: {'SÍ' if s['fullscreen'] else 'NO'}", "p7", size=10):
+                self._pend_fs = True
+            self.app.fonts.text(surf, "Los cambios se aplican al momento.", (215, 280), size=9, color=K.C["gris"])
+            if self.app.input.mouse_released or self.app.input.mouse_clicked:
+                self.app.audio.refresh_volumes()
+                s.flush()
         # botones
         if g.button(pygame.Rect(132, 300, 120, 22), "CONTINUAR", "res", size=10):
             self.paused = False

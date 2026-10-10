@@ -255,7 +255,9 @@ class CharSelectScene(BaseScene):
             f.text(self.app.screen, line, (panel.x + 12, y), size=11, color=K.C["crema"])
             y += 13
         y += 4
-        f.text(self.app.screen, f"★ {c['perk_desc']}"[:60], (panel.x + 12, y), size=11, color=K.C["teal_claro"])
+        for pl in f.wrap(f"★ {c['perk_desc']}", "vt", 11, panel.w - 26):
+            f.text(self.app.screen, pl, (panel.x + 12, y), size=11, color=K.C["teal_claro"])
+            y += 13
         # stats con meta
         adds, _ = MU.aggregate_ranks(self.app.save.data["ranks"])
         stats = dict(K.BASE)
@@ -265,7 +267,7 @@ class CharSelectScene(BaseScene):
             stats[k2] *= m
         for k2, v in adds.items():
             stats[k2] += v
-        y += 18
+        y += 5
         row = [("Vida", f"{int(stats['hp'])}"), ("Vel", f"{int(stats['speed'])}"),
                ("Daño", f"{stats['dmg']*100:.0f}%"), ("Ataque", f"{stats['atk_speed']*100:.0f}%"),
                ("Luz", f"{int(stats['light'])}"), ("Crítico", f"{stats['crit']*100:.0f}%")]
@@ -274,9 +276,9 @@ class CharSelectScene(BaseScene):
             yy = y + (k2 // 3) * 16
             f.text(self.app.screen, f"{a}: ", (x, yy), size=10, color=K.C["gris"])
             f.text(self.app.screen, b, (x + 58, yy), size=10, color=K.C["crema"])
-        # guardia
-        gy = 118
-        f.text(self.app.screen, f"NIVEL DE GUARDIA  ({ST.GUARDIA_BLURB})", (24, gy - 14), size=10, color=K.C["papel2"])
+        # guardia (debajo de la rejilla de cacharros, sin solapes)
+        gy = 186
+        f.text(self.app.screen, f"NIVEL DE GUARDIA  ({ST.GUARDIA_BLURB})", (24, 172), size=10, color=K.C["papel2"])
         saw = self.app.save.guardia_max(self.sel)
         for gnum in range(1, K.MAX_GUARDIA + 1):
             r = pygame.Rect(24 + (gnum - 1) * 42, gy, 38, 20)
@@ -290,8 +292,8 @@ class CharSelectScene(BaseScene):
         f.text(self.app.screen, f"Mejor: guardia {saw}" if saw else "Sin victorias todavía", (24, gy + 24),
                size=10, color=K.C["gris"])
         # marcas
-        my = gy + 46
-        f.text(self.app.screen, "MARCAS DEL TURNO (riesgo ↔ chispas)", (24, my - 14), size=10, color=K.C["papel2"])
+        my = 248
+        f.text(self.app.screen, "MARCAS DEL TURNO (riesgo ↔ chispas)", (24, my - 16), size=10, color=K.C["papel2"])
         for i, m in enumerate(CM.MUTATORS):
             r = pygame.Rect(24 + (i % 3) * 100, my + (i // 3) * 24, 94, 20)
             unlocked = self.app.save.has(f"mutator:{m['id']}")

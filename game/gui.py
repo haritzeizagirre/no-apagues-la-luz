@@ -162,8 +162,12 @@ class GUI:
                                     shadow=True, anchor="midtop")
         return r
 
-    def icon_slot(self, rect, icon, label=None, price=None, en=True, border=None, count=None, tag=None, sold=False):
-        """Hueco de tienda / inventario estilo máquina expendedora."""
+    def icon_slot(self, rect, icon, label=None, price=None, en=True, border=None, count=None, tag=None,
+                  sold=False, desc=None):
+        """Hueco de tienda / inventario estilo máquina expendedora.
+
+        con `desc`: nombre + efecto visibles dentro del hueco (sin tooltip).
+        """
         s = self.app.screen
         r = pygame.Rect(rect)
         hov = r.collidepoint(self.mouse)
@@ -179,15 +183,23 @@ class GUI:
         bc = border or (K.C["azul"] if en else K.C["gris_osc"])
         pygame.draw.rect(s, K.C["ambar"] if (hov and en) else bc, r, 1, border_radius=3)
         if icon is not None:
-            ix = r.centerx - icon.get_width() // 2
-            iy = r.y + 8
-            s.blit(icon, (ix, iy))
+            iy = r.y + 12 if desc else r.y + 8
+            s.blit(icon, (r.centerx - icon.get_width() // 2, iy))
         if label:
             label = self.app.fonts.fit(label, "vt", 9, r.w - 8)
-            self.app.fonts.text(s, label, (r.centerx, r.bottom - 22), size=9, color=K.C["crema"] if en else K.C["gris"],
-                                anchor="midtop", shadow=True)
+            if desc:
+                self.app.fonts.text(s, label, (r.centerx, r.y + 42), size=9,
+                                    color=K.C["ambar_claro"] if en else K.C["gris"], anchor="midtop", shadow=True)
+                yy = r.y + 60
+                for ln in self.app.fonts.wrap(desc, "vt", 9, r.w - 8)[:2]:
+                    self.app.fonts.text(s, ln, (r.centerx, yy), size=9,
+                                        color=K.C["crema"] if en else K.C["gris_osc"], anchor="midtop")
+                    yy += 11
+            else:
+                self.app.fonts.text(s, label, (r.centerx, r.bottom - 22), size=9, color=K.C["crema"] if en else K.C["gris"],
+                                    anchor="midtop", shadow=True)
         if price is not None:
-            self.app.fonts.text(s, f"{price}¢", (r.centerx, r.bottom - 9), size=10,
+            self.app.fonts.text(s, f"{price}¢", (r.centerx, r.bottom - (11 if desc else 9)), size=10,
                                 color=K.C["ambar"] if en else K.C["rojo_claro"], anchor="midtop", shadow=True)
         if count is not None:
             self.app.fonts.text(s, f"x{count}", (r.right - 4, r.y + 3), size=9, color=K.C["teal_claro"],

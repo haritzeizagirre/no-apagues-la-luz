@@ -56,6 +56,8 @@ def test_full_click_flow(app):
         # ESC → pausa → CONTINUAR
         _step(app, (320, 180), key=pygame.K_ESCAPE)
         assert app.scene.paused, "ESC no pausa"
+        _step(app, (465, 62), click=True)   # pestaña AJUSTES dentro de la pausa
+        assert app.scene.pause_tab == 3, "la pestaña AJUSTES de la pausa no responde"
         _step(app, (192, 311), click=True)
         assert not app.scene.paused, "CONTINUAR no reanuda"
         # pausa otra vez → MENÚ

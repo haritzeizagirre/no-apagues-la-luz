@@ -256,6 +256,9 @@ def run_screenshot(argv) -> int:
     # pausa
     app.scene.paused = True
     frame_shot("15_pausa")
+    app.scene.pause_tab = 3
+    frame_shot("15b_pausa_ajustes")
+    app.scene.pause_tab = 0
     app.scene.paused = False
     # victoria
     world._finish(victory=True)

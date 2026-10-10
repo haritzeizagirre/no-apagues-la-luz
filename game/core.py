@@ -274,7 +274,7 @@ class Fonts:
 
     # VT323 a tamaños pequeños colapsa (glifos mazacote): para text UI diminuto se
     # sustituye por Silkscreen (diseñada para cuerpos pequeños) en tamaño equivalente.
-    SMALL_UI = {8: ("silk", 8), 9: ("silk", 8), 10: ("silk", 9), 11: ("silk", 10), 12: ("silk", 10)}
+    SMALL_UI = {8: ("silk", 9), 9: ("silk", 9), 10: ("silk", 10), 11: ("silk", 11), 12: ("silk", 12)}
 
     def font(self, kind="vt", size=14) -> pygame.font.Font:
         if kind == "vt":
