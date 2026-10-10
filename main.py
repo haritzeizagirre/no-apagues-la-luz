@@ -225,6 +225,11 @@ def run_screenshot(argv) -> int:
     world = app.scene.world
     inp = FakeAppInput()
     app.input = inp
+    app.scene.tut_page = 1
+    frame_shot("09_guia1")               # guía del primer turno (página 1)
+    app.scene.tut_page = 2
+    frame_shot("09b_guia2")              # guía (página 2): por qué esas armas
+    app.scene.tut_page = 0
     # 40 s de juego
     for i in range(int(40 * 60)):
         bot_step(world, inp, i / 60)

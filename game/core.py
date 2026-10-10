@@ -539,7 +539,7 @@ class App:
             if self.fps_acc >= 0.5:
                 self.fps = self.fps_n / self.fps_acc
                 self.fps_acc, self.fps_n = 0.0, 0
-            self.fonts.text(self.screen, f"{self.fps:.0f} fps", (K.W - 4, 4), size=10, anchor="topright",
+            self.fonts.text(self.screen, f"{self.fps:.0f} fps", (K.W - 4, 46), size=10, anchor="topright",
                             color=K.C["ambar"] if self.fps > 50 else K.C["rojo_claro"], shadow=True)
         if not self.headless and self.window is not None:
             self._sync_view()   # por si el SO redimensiona sin evento

@@ -276,6 +276,17 @@ class CharSelectScene(BaseScene):
             yy = y + (k2 // 3) * 16
             f.text(self.app.screen, f"{a}: ", (x, yy), size=10, color=K.C["gris"])
             f.text(self.app.screen, b, (x + 58, yy), size=10, color=K.C["crema"])
+        # equipo inicial (transparencia: con qué armas sales)
+        yq = y + 2 * 16 + 6
+        f.text(self.app.screen, "EQUIPO INICIAL:", (panel.x + 12, yq), size=10, color=K.C["papel2"])
+        for wi, wid in enumerate(c.get("weapons", [])[:3]):
+            wd = CW.BY_ID.get(wid)
+            if wd is None:
+                continue
+            xx = panel.x + 12 + wi * 128
+            self.app.screen.blit(I.get_icon(wd["icon"]), (xx, yq + 14))
+            f.text(self.app.screen, CW.SHORT.get(wid, (wd["name"], ""))[0], (xx + 24, yq + 16), size=9,
+                   color=K.C["crema"])
         # guardia (debajo de la rejilla de cacharros, sin solapes)
         gy = 186
         f.text(self.app.screen, f"NIVEL DE GUARDIA  ({ST.GUARDIA_BLURB})", (24, 172), size=10, color=K.C["papel2"])

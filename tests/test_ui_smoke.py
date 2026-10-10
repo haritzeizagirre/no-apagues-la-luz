@@ -42,6 +42,7 @@ def _screen_hash(app):
 def test_run_scene_and_overlays(app):
     app.set_scene("run", char_id="lia", guardia=1, mut_ids=[], seed=5)
     scene = app.scene
+    scene.tut_page = 0  # guía ya vista (su flujo lo cubre test_e2e_flow)
     for _ in range(4):
         assert app.frame()
     h_base = _screen_hash(app)

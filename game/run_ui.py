@@ -41,6 +41,7 @@ class RunScene(Scene):
         self.abandon_confirm = False
         self.shop_hover = None
         self._pend_fs = False
+        self.tut_page = 0
 
     # ------------------------------------------------------------- entrada
     def enter(self, char_id="lia", guardia=1, mut_ids=None, seed=None, **kw):
@@ -50,6 +51,7 @@ class RunScene(Scene):
         self.toasts = []
         self.banner_t = 0
         self.intro_t = 2.6
+        self.tut_page = 1 if not self.app.save.data.get("seen_tut") else 0
         self.sel_weapon = None
         self.end_t = 0.0
         self.abandon_confirm = False
@@ -58,6 +60,8 @@ class RunScene(Scene):
 
     # ------------------------------------------------------------- input
     def handle(self, ev):
+        if self.tut_page > 0:
+            return  # la guía consume el input; se avanza desde update()
         if ev.type == pygame.KEYDOWN:
             if self.world and self.world.phase in ("dead", "victory"):
                 return
@@ -70,6 +74,8 @@ class RunScene(Scene):
                 self.pause_tab = (self.pause_tab + 1) % 4
             elif self.paused and ev.key == pygame.K_TAB:
                 pass
+            elif ev.key == pygame.K_g and self.paused:
+                self.tut_page = 1
         if self.paused and ev.type == pygame.KEYDOWN and ev.key == pygame.K_q:
             self.app.set_scene("menu")
 
@@ -81,6 +87,20 @@ class RunScene(Scene):
         if self._pend_fs:
             self._pend_fs = False
             self.app.toggle_fullscreen()
+        if self.tut_page > 0:
+            inp = self.app.input
+            advance = (inp.just_pressed(pygame.K_RETURN) or inp.just_pressed(pygame.K_SPACE)
+                       or inp.mouse_clicked)
+            if advance or inp.just_pressed(pygame.K_ESCAPE):
+                if advance:
+                    self.tut_page += 1
+                    self.app.audio.play("ui_click")
+                if self.tut_page > 2 or not advance:
+                    self.tut_page = 0
+                if self.tut_page == 0:
+                    self.app.save.data["seen_tut"] = True
+                    self.app.save.flush()
+            return
         # eventos del mundo
         for ev in w.events:
             t = ev["type"]
@@ -161,7 +181,8 @@ class RunScene(Scene):
             rect = g.sticky_card(r, card["name"], self._wrap_card(card), accent_idx=i, en=True)
             self.card_rects.append(rect)
             icon = I.get_icon(card["icon"])
-            surf.blit(icon, (rect.centerx - icon.get_width() // 2, rect.y + 46))
+            icon_y = rect.y + 32 + len(self._wrap_card(card)) * 13
+            surf.blit(icon, (rect.centerx - icon.get_width() // 2, icon_y))
             if g.click and r.collidepoint(g.mouse):
                 self.world.apply_levelup(card)
                 self.app.audio.play("ui_click")
@@ -186,10 +207,10 @@ class RunScene(Scene):
         vm = S.get("pp_vending")
         surf.blit(vm.n, (96, 60))
         # ofertas (nombre + efecto visibles dentro del hueco, sin tooltip)
-        slot_w = 88
-        x0 = 182
+        slot_w = 90
+        x0 = 180
         for i, off in enumerate(w.shop):
-            r = pygame.Rect(x0 + i * 95, 62, slot_w, 104)
+            r = pygame.Rect(x0 + i * 96, 62, slot_w, 104)
             if off["kind"] == "weapon":
                 d = CW.BY_ID[off["id"]]
                 short, res = CW.SHORT.get(off["id"], (d["name"], d["desc"]))
@@ -274,14 +295,14 @@ class RunScene(Scene):
         ov = pygame.Surface((K.W, K.H), pygame.SRCALPHA)
         ov.fill((6, 8, 16, 170))
         surf.blit(ov, (0, 0))
-        g.panel((120, 30, 400, 300), "slab", "TURNO EN PAUSA")
+        g.panel((80, 26, 480, 304), "slab", "TURNO EN PAUSA")
         tabs = ["ESTADO", "CONTROLES", "ARCHIVO", "AJUSTES"]
         for i, tname in enumerate(tabs):
             r = pygame.Rect(132 + i * 96, 52, 90, 20)
             if g.button(r, tname, f"tab{i}", style="key", size=9, en=(self.pause_tab != i)):
                 self.pause_tab = i
         if self.pause_tab == 0:
-            y = 84
+            y = 80
             rows = [("Vida", f"{int(w.player.hp)}/{int(w.player.max_hp)}"),
                     ("Nivel", str(w.level)),
                     ("Daño", K.fmt_stat("dmg", w.stats["dmg"] - 1)),
@@ -294,13 +315,18 @@ class RunScene(Scene):
                     ("Racha máx.", str(w.rs["best_combo"]))]
             for k, (a, b) in enumerate(rows):
                 col = K.C["crema"] if k % 2 == 0 else K.C["papel2"]
-                self.app.fonts.text(surf, a, (140, y + k * 17), size=12, color=col)
-                self.app.fonts.text(surf, str(b), (330, y + k * 17), size=12, color=K.C["ambar"], shadow=True)
-            self.app.fonts.text(surf, "ARMAS", (140, y + 10 * 17 + 4), size=10, color=K.C["teal_claro"])
+                self.app.fonts.text(surf, a, (140, y + k * 15), size=11, color=col)
+                self.app.fonts.text(surf, str(b), (330, y + k * 15), size=11, color=K.C["ambar"], shadow=True)
+            self.app.fonts.text(surf, "ARMAS (disparan solas · 2 iguales se fusionan)", (140, y + 10 * 15 + 4),
+                                size=10, color=K.C["teal_claro"])
             for i, inst in enumerate(w.player.weapons):
+                wid = inst.defn["id"]
+                short = CW.SHORT.get(wid, (inst.defn["name"], ""))[0]
+                xx = 140 + (i % 2) * 205
+                yy = y + 10 * 15 + 18 + (i // 2) * 16
                 icon = I.get_icon(inst.defn["icon"])
-                surf.blit(icon, (140 + i * 26, y + 10 * 17 + 18))
-                self.app.fonts.text(surf, str(inst.level), (146 + i * 26, y + 10 * 17 + 32), size=8, color=K.C["crema"])
+                surf.blit(icon, (xx, yy))
+                self.app.fonts.text(surf, f"{short} N{inst.level}", (xx + 20, yy - 2), size=9, color=K.C["crema"])
         elif self.pause_tab == 1:
             y = 90
             for k, (a, b) in enumerate(ST.CONTROLS):
@@ -308,6 +334,8 @@ class RunScene(Scene):
                 self.app.fonts.text(surf, b, (250, y + k * 18), size=11, color=K.C["crema"])
             self.app.fonts.text(surf, "En penumbra haces 35% menos daño.", (140, y + 8 * 18 + 6), size=10,
                                 color=K.C["gris"])
+            self.app.fonts.text(surf, "G: volver a ver la GUÍA del turno.", (140, y + 8 * 18 + 20), size=10,
+                                color=K.C["ambar_claro"])
         elif self.pause_tab == 2:
             y = 88
             i = 0
@@ -432,7 +460,9 @@ class RunScene(Scene):
             self._draw_intro(surf)
         # superposiciones interactivas (se dibujan AQUÍ, después del mundo)
         w = self.world
-        if self.paused:
+        if self.tut_page > 0:
+            self._ui_tut()
+        elif self.paused:
             self._ui_pause()
         elif self.cards is not None:
             self._ui_levelup()
@@ -457,12 +487,13 @@ class RunScene(Scene):
         # vida (bombilla)
         hp = w.player.hp / max(1.0, w.player.max_hp)
         bar(surf, (8, K.H - 26, 150, 12), hp, K.C["rojo_claro"] if hp < 0.4 else K.C["teal_claro"])
-        f.text(surf, f"{int(w.player.hp)}", (12, K.H - 24), size=11, color=K.C["negro"], shadow=False)
+        f.text(surf, f"{int(w.player.hp)}", (12, K.H - 20), size=10, anchor="midleft",
+               color=K.C["negro"] if hp >= 0.45 else K.C["crema"], shadow=hp < 0.45)
         # xp
         nxt = max(1.0, w.xp_next)
         xp_frac = clamp(w.xp / nxt, 0, 1)
         bar(surf, (8, K.H - 12, K.W - 16, 8), xp_frac, K.C["teal"])
-        f.text(surf, f"Nv {w.level}", (K.W - 8, K.H - 12), size=11, color=K.C["teal_claro"], anchor="topright", shadow=True)
+        f.text(surf, f"Nv {w.level}", (K.W - 8, K.H - 25), size=11, color=K.C["teal_claro"], anchor="topright", shadow=True)
         # monedas
         surf.blit(I.get_icon("ic_s_coin"), (K.W - 70, 6))
         f.text(surf, str(int(w.coins)), (K.W - 56, 8), size=13, color=K.C["ambar"], shadow=True)
@@ -500,6 +531,61 @@ class RunScene(Scene):
         # incidencias activas
         if w.dark_bonus_t > 0:
             f.text(surf, "¡APAGÓN!", (K.W // 2, 40), size=11, color=K.C["morado_claro"], anchor="center", shadow=True)
+
+    # ------------------------------------------------------------- guía
+    def _ui_tut(self):
+        """Guía ilustrada del HUD y del equipo inicial (2 páginas)."""
+        surf = self.app.screen
+        f = self.app.fonts
+        g = self.gui
+        ov = pygame.Surface((K.W, K.H), pygame.SRCALPHA)
+        ov.fill((6, 8, 16, 205))
+        surf.blit(ov, (0, 0))
+        if self.tut_page == 1:
+            g.panel((60, 30, 520, 268), "slab", "¿QUÉ ESTOY VIENDO?")
+            lines = [
+                ("RELOJ (arriba izq.)", "hora del turno · barra naranja = lo que queda"),
+                ("MONEDAS (arriba der.)", "se gastan en LA EXPENDEDORA entre horas"),
+                ("VIDA (abajo izq.)", "tu bombilla · si llega a 0, te apagan"),
+                ("RECUERDOS (barra verde)", "experiencia: llénala y eliges una mejora"),
+                ("TUS ARMAS (iconos abajo)", "disparan solas · 2 iguales se fusionan"),
+                ("FOGONAZO (ESPACIO)", "pulso de luz que aturde lo que te rodea"),
+                ("DASH (SHIFT)", "esquiva rápida con un instante sin daño"),
+                ("BOTÍN DEL SUELO", "chispas, monedas y vida: los recoges al pasar"),
+                ("CAJAS DE CARTÓN", "chasquéalas: sueltan monedas y a veces curitas"),
+            ]
+            y = 52
+            for a, b in lines:
+                f.text(surf, f"· {a}:", (76, y), size=10, color=K.C["ambar_claro"])
+                f.text(surf, b, (252, y), size=10, color=K.C["crema"])
+                y += 24
+            f.text(surf, "clic / ENTER para seguir >", (K.W // 2, K.H - 24), size=11, color=K.C["ambar"],
+                   anchor="center", shadow=True)
+        else:
+            g.panel((60, 30, 520, 268), "slab", "¿POR QUÉ EMPIEZAS CON ESAS ARMAS?")
+            cdef = self.world.char
+            f.text(surf, f"{cdef['name']} trae su propio equipo de oficina:", (76, 54), size=11,
+                   color=K.C["crema"])
+            y = 80
+            for wid in cdef.get("weapons", []):
+                wd = CW.BY_ID.get(wid)
+                if wd is None:
+                    continue
+                short, res = CW.SHORT.get(wid, (wd["name"], wd["desc"]))
+                icon = I.get_icon(wd["icon"])
+                surf.blit(icon, (80, y))
+                f.text(surf, short, (112, y - 2), size=11, color=K.C["ambar_claro"])
+                f.text(surf, res, (112, y + 11), size=10, color=K.C["crema"])
+                y += 38
+            y = max(y + 4, 170)
+            for ln in ("Las armas disparan solas: tú te mueves y esquivas.",
+                       "En la tienda puedes comprar más (hasta 6) y fusionar",
+                       "dos iguales para subirles el nivel.",
+                       "Cada cacharro empieza con armas distintas: pruébalos."):
+                f.text(surf, ln, (76, y), size=10, color=K.C["papel2"])
+                y += 15
+            f.text(surf, "clic / ENTER para empezar el turno >", (K.W // 2, K.H - 24), size=11,
+                   color=K.C["ambar"], anchor="center", shadow=True)
 
     def _draw_intro(self, surf):
         a = clamp(self.intro_t / 1.2, 0, 1)

@@ -51,11 +51,23 @@ def test_full_click_flow(app):
         # EMPEZAR LA NOCHE → partida
         _step(app, (124, 331), click=True)
         assert _scene(app) == "RunScene", "el botón EMPEZAR no arranca la partida"
+        # guía del primer turno: aparece sola y se pasa con ENTER
+        assert app.scene.tut_page == 1, "la guía del primer turno no aparece"
+        _step(app, (320, 180), key=pygame.K_RETURN)
+        assert app.scene.tut_page == 2, "la guía no pasa de página"
+        _step(app, (320, 180), key=pygame.K_RETURN)
+        assert app.scene.tut_page == 0, "la guía no se cierra"
+        assert app.save.data.get("seen_tut"), "la guía no queda marcada como vista"
         for _ in range(5):
             _step(app, (320, 180))
         # ESC → pausa → CONTINUAR
         _step(app, (320, 180), key=pygame.K_ESCAPE)
         assert app.scene.paused, "ESC no pausa"
+        # G abre la guía desde la pausa y ESC la cierra
+        _step(app, (0, 0), key=pygame.K_g)
+        assert app.scene.tut_page == 1, "G no abre la guía desde la pausa"
+        _step(app, (320, 180), key=pygame.K_ESCAPE)
+        assert app.scene.tut_page == 0 and app.scene.paused, "ESC no cierra la guía"
         _step(app, (465, 62), click=True)   # pestaña AJUSTES dentro de la pausa
         assert app.scene.pause_tab == 3, "la pestaña AJUSTES de la pausa no responde"
         _step(app, (192, 311), click=True)

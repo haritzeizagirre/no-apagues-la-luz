@@ -190,8 +190,11 @@ class GUI:
             if desc:
                 self.app.fonts.text(s, label, (r.centerx, r.y + 42), size=9,
                                     color=K.C["ambar_claro"] if en else K.C["gris"], anchor="midtop", shadow=True)
+                dl = self.app.fonts.wrap(desc, "vt", 9, r.w - 8)
+                if len(dl) > 2:
+                    dl[1] = self.app.fonts.fit(" ".join(dl[1:]), "vt", 9, r.w - 8)
                 yy = r.y + 60
-                for ln in self.app.fonts.wrap(desc, "vt", 9, r.w - 8)[:2]:
+                for ln in dl[:2]:
                     self.app.fonts.text(s, ln, (r.centerx, yy), size=9,
                                         color=K.C["crema"] if en else K.C["gris_osc"], anchor="midtop")
                     yy += 11

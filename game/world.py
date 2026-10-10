@@ -160,6 +160,14 @@ class RunWorld:
     def toast(self, text: str, kind="info"):
         self.events.append({"type": "toast", "text": text, "kind": kind})
 
+    def _tip(self, key: str, text: str):
+        """Aviso explicativo, una sola vez por instalación (persistente)."""
+        tips = self.app.save.data.setdefault("tips", {})
+        if not tips.get(key):
+            tips[key] = True
+            self.app.save.flush()
+            self.toast(text, "info")
+
     def light_radius(self) -> float:
         base = self.stats["light"]
         drain = 1.0 - min(0.6, 0.22 * self.player.drains)
@@ -711,14 +719,17 @@ class RunWorld:
             val = it.value * self.stats["xp_gain"] * (1 + self.mods.get("xp_gain", 0))
             self._add_xp(val)
             self.app.audio.play_xp(self.player.combo)
+            self._tip("xp", "Recuerdos = experiencia: llena la barra verde y subirás de nivel")
         elif it.kind == "coin":
             val = it.value * self.stats["coin_gain"] * (1 + self.mods.get("coin_gain", 0))
             self.coins += val
             self.rs["coins"] = int(self.coins)
             self.app.audio.play("pickup_coin", 0.8)
+            self._tip("coin", "Monedas: se gastan en LA EXPENDEDORA, entre hora y hora")
         elif it.kind == "heal":
             self.heal_player(it.value)
             self.app.audio.play("pickup_heal")
+            self._tip("heal", "Azucarillo: recupera vida de tu bombilla")
 
     def _add_xp(self, val):
         self.xp += val
@@ -1119,6 +1130,7 @@ class RunWorld:
                     self.rs["crates"] += 1
                     self.app.audio.play("crate_break")
                     self.app.audio.play("crate_break", 0.8)
+                    self._tip("crate", "¡Caja rota! Suelta monedas y, a veces, curitas")
                     self.particles.add(pr.x, pr.y, K.C["ambar_osc"], n=12, speed=(30, 140), life=(0.2, 0.5))
                     for _ in range(self.rng.randint(2, 4)):
                         self.spawn_drop(pr.x, pr.y, "coin", 1)

@@ -18,6 +18,8 @@ def default_meta() -> dict:
     return {
         "version": META_VERSION,
         "chispas": 0,
+        "seen_tut": False,
+        "tips": {},
         "ranks": {},              # id de mejora del Cajón -> rango
         "unlocked": ["char:lia"], # ids "tipo:nombre"
         "ach": {},                # id -> {"done": bool, "n": int}
