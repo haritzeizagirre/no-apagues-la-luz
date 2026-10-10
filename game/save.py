@@ -43,7 +43,8 @@ def default_settings() -> dict:
         "vol_sfx": 0.9,
         "vol_music": 0.75,
         "fullscreen": False,
-        "scale": 2,           # 0 = auto
+        "win_w": 1280,        # tamaño de ventana recordado (se abre centrada)
+        "win_h": 720,
         "shake": True,
         "dmg_numbers": True,
         "flash": True,

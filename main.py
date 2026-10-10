@@ -285,6 +285,10 @@ def main(argv=None) -> int:
             app.set_scene("menu")
         while app.running:
             app.frame()
+        try:
+            app.settings.flush()   # recuerda el tamaño de ventana al cerrar con la X
+        except Exception:
+            pass
         return 0
     except BaseException as e:
         path = _crash_log(e)

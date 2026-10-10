@@ -79,6 +79,16 @@ def test_full_click_flow(app):
         before = app.settings["shake"]
         _step(app, (260, 191), click=True)
         assert app.settings["shake"] != before, "el toggle de vibración no responde"
+        # PANTALLA COMPLETA (headless: solo cambia el ajuste) + RECENTRAR sin reventar
+        fs0 = app.settings["fullscreen"]
+        _step(app, (306, 327), click=True)
+        _step(app, (306, 327))
+        assert app.settings["fullscreen"] != fs0, "el botón de pantalla completa no responde"
+        _step(app, (306, 327), click=True)
+        _step(app, (306, 327))
+        assert app.settings["fullscreen"] == fs0
+        _step(app, (452, 327), click=True)
+        _step(app, (452, 327))
         _step(app, (0, 0), key=pygame.K_ESCAPE)
         assert _scene(app) == "MenuScene"
         # HISTORIA y CRÉDITOS

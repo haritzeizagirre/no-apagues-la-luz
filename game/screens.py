@@ -518,17 +518,11 @@ class ArchivoScene(BaseScene):
 # ---------------------------------------------------------------- Ajustes
 class AjustesScene(BaseScene):
     def enter(self, **kw):
-        self._pend_sc = None
         self._pend_fs = False
 
     def update(self, dt):
         self.gui.begin()
-        if self._pend_sc is not None:
-            self.app.settings["scale"] = self._pend_sc
-            self._pend_sc = None
-            self.app.settings.flush()
-            self.app._create_window()
-        elif self._pend_fs:
+        if self._pend_fs:
             self._pend_fs = False
             self.app.toggle_fullscreen()
         elif self.app.input.just_pressed(pygame.K_ESCAPE):
@@ -549,14 +543,13 @@ class AjustesScene(BaseScene):
         s["assist"] = g.toggle(pygame.Rect(160, y + 222, 300, 22), "Modo becario (-25% vida enemiga)", s["assist"], "ass")
         if self.app.input.mouse_released or self.app.input.mouse_clicked:
             changed = True
-        # escala / pantalla completa
-        self.app.fonts.text(surf, "Escala:", (160, y + 250), size=11, color=K.C["crema"])
-        for k, sc in enumerate((1, 2, 3)):
-            r = pygame.Rect(214 + k * 40, y + 248, 34, 20)
-            if g.button(r, f"{sc}x", f"sc{k}", size=10, en=(s["scale"] != sc)):
-                self._pend_sc = sc
-        if g.button(pygame.Rect(350, y + 248, 130, 20), "PANTALLA COMPLETA", "fs", size=9):
+        # ventana: pantalla completa + rescate (la ventana se redimensiona con el marco, como cualquier app)
+        self.app.fonts.text(surf, "Ventana:", (160, y + 250), size=11, color=K.C["crema"])
+        fs_label = f"PANTALLA COMPLETA: {'SÍ' if s['fullscreen'] else 'NO'}"
+        if g.button(pygame.Rect(222, y + 246, 168, 22), fs_label, "fs", size=10):
             self._pend_fs = True
+        if g.button(pygame.Rect(398, y + 246, 108, 22), "RECENTRAR", "rc", size=10):
+            self.app.reset_window()
         if changed:
             self.app.audio.refresh_volumes()
             s.flush()

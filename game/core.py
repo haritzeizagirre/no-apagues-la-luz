@@ -3,6 +3,7 @@ escenas y bucle de aplicación con escalado entero y capturas."""
 from __future__ import annotations
 
 import math
+import os
 import random
 
 import pygame
@@ -385,6 +386,7 @@ class App:
         self.scale = 1
         self.off = (0, 0)
         self.view = (K.W, K.H)
+        self._win_created = False   # solo la primera ventana se centra sola
         self._create_window()
         self.screen = pygame.Surface((K.W, K.H)).convert()
         self.scenes: dict[str, Scene] = {}
@@ -408,19 +410,67 @@ class App:
             return
         if self.settings["fullscreen"]:
             self.window = pygame.display.set_mode(info, pygame.FULLSCREEN)
-            sw, sh = info
         else:
-            sc = self.settings["scale"] or 2
-            sc = clamp(sc, 1, 4)
-            self.window = pygame.display.set_mode((K.W * sc, K.H * sc))
-            sw, sh = K.W * sc, K.H * sc
-        self.scale = max(1, min(sw // K.W, sh // K.H))
-        self.view = (K.W * self.scale, K.H * self.scale)
-        self.off = ((sw - self.view[0]) // 2, (sh - self.view[1]) // 2)
+            w, h = self._target_win_size(info)
+            if not self._win_created:
+                # primera ventana: centrada en el escritorio
+                cx, cy = max(0, (info[0] - w) // 2), max(0, (info[1] - h) // 2)
+                os.environ["SDL_VIDEO_WINDOW_POS"] = f"{cx},{cy}"
+                self._win_created = True
+            # RESIZABLE: el usuario redimensiona la ventana como cualquier app
+            self.window = pygame.display.set_mode((w, h), pygame.RESIZABLE)
+        self._sync_view()
+
+    def _target_win_size(self, info):
+        s = self.settings
+        w = int(s["win_w"] or 1280)
+        h = int(s["win_h"] or 720)
+        return clamp(w, 480, info[0]), clamp(h, 270, info[1])
+
+    @staticmethod
+    def _fit_view(sw: int, sh: int):
+        """Mayor escala del lienzo que encaja en la ventana; si el encaje es
+        cercano a un entero, se usa el entero (píxeles perfectos)."""
+        f = max(0.25, min(sw / K.W, sh / K.H))
+        n = math.floor(f + 1e-9)
+        if n >= 1 and (n / f) >= 0.84:
+            f = float(n)
+        vw, vh = int(K.W * f), int(K.H * f)
+        off = (max(0, (sw - vw) // 2), max(0, (sh - vh) // 2))
+        return f, off, (vw, vh)
+
+    def _sync_view(self):
+        """Recalcula la vista a partir del tamaño real de la ventana (resize vivo)."""
+        if self.headless or self.window is None:
+            return
+        sw, sh = self.window.get_size()
+        if sw < 200 or sh < 150:  # minimizada o tamaño transitorio
+            return
+        self.scale, self.off, self.view = self._fit_view(sw, sh)
+        if not self.settings["fullscreen"]:
+            self.settings["win_w"], self.settings["win_h"] = sw, sh
+
+    def reset_window(self):
+        """Desatasco: vuelve a una ventana 1280x720 centrada en el escritorio."""
+        self.settings["fullscreen"] = False
+        self.settings["win_w"], self.settings["win_h"] = 1280, 720
+        self.settings.flush()
+        if self.headless:
+            return
+        self._win_created = False          # permite re-centrar
+        pygame.display.quit()
+        pygame.display.init()
+        self._create_window()
 
     def toggle_fullscreen(self):
-        self.settings["fullscreen"] = not self.settings["fullscreen"]
-        self.settings.flush()
+        s = self.settings
+        if not s["fullscreen"] and self.window is not None:
+            try:
+                s["win_w"], s["win_h"] = self.window.get_size()
+            except Exception:
+                pass
+        s["fullscreen"] = not s["fullscreen"]
+        s.flush()
         self._create_window()
 
     def mouse(self):
@@ -457,6 +507,10 @@ class App:
                 self.debug = not self.debug
             elif ev.type == pygame.KEYDOWN and ev.key == pygame.K_F12:
                 self.screenshot()
+            elif ev.type == pygame.VIDEORESIZE and not self.headless and not self.settings["fullscreen"]:
+                if tuple(ev.size) != tuple(self.window.get_size()):
+                    self.window = pygame.display.set_mode(ev.size, pygame.RESIZABLE)
+                self._sync_view()
             self.input.handle(ev)
             if self.scene:
                 self.scene.handle(ev)
@@ -487,16 +541,21 @@ class App:
                 self.fps_acc, self.fps_n = 0.0, 0
             self.fonts.text(self.screen, f"{self.fps:.0f} fps", (K.W - 4, 4), size=10, anchor="topright",
                             color=K.C["ambar"] if self.fps > 50 else K.C["rojo_claro"], shadow=True)
+        if not self.headless and self.window is not None:
+            self._sync_view()   # por si el SO redimensiona sin evento
         self._present()
         return self.running
 
     def _present(self):
         vw, vh = self.view
-        if vw > K.W:
-            pygame.transform.scale(self.screen, (vw, vh), self.window.subsurface(pygame.Rect(self.off, (vw, vh))))
-        else:
+        if self.off != (0, 0):
             self.window.fill((0, 0, 0))
+        if vw == K.W and vh == K.H:
             self.window.blit(self.screen, self.off)
+        else:
+            f = vw / K.W
+            fn = pygame.transform.scale if float(f).is_integer() else pygame.transform.smoothscale
+            fn(self.screen, (vw, vh), self.window.subsurface(pygame.Rect(self.off, (vw, vh))))
         pygame.display.flip()
 
     def screenshot(self):
@@ -511,3 +570,7 @@ class App:
 
     def quit(self):
         self.running = False
+        try:
+            self.settings.flush()   # recuerda tamaño de ventana y ajustes
+        except Exception:
+            pass

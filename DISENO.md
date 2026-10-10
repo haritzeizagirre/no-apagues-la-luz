@@ -51,7 +51,7 @@ Quien apaga la luz, alimenta al Olvido.
 - **Incidencias** del turno, **cajas de cartón** rompibles, props de oficina con colisión.
 
 ## Dirección artística y UI
-- Resolución interna **640×360**, escalada entera a ventana (def. 1280×720, F11 fullscreen).
+- Resolución interna **640×360**. Ventana redimensionable libre como cualquier app de Windows (def. 1280×720, se abre centrada y recuerda el tamaño); escala entera cuando encaja (píxeles nítidos) y suave si no; **F11** pantalla completa y botón **RECENTRAR** de rescate en Ajustes.
 - Paleta: azul noche + ámbar de lámpara + teal + papel crema. Sprites pixel generados por código (coherencia total).
 - UI "papelería nocturna": notas adhesivas para cartas de subida, teclas para botones, máquina expendedora dibujada
   para la tienda, reloj de fichar para la hora/marcha de la oleada, barra de XP como cable. Fuentes OFL:
