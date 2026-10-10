@@ -203,9 +203,9 @@ class RunScene(Scene):
         surf.blit(ov, (0, 0))
 
         panel = g.panel((80, 26, 480, 268), "slab", ST.SHOP_TITLE)
-        # máquina expendedora decorativa a la izquierda
+        # máquina expendedora decorativa (abajo, sin pisar huecos ni textos)
         vm = S.get("pp_vending")
-        surf.blit(vm.n, (96, 60))
+        surf.blit(vm.n, (88, 236))
         # ofertas (nombre + efecto visibles dentro del hueco, sin tooltip)
         slot_w = 90
         x0 = 180
@@ -273,19 +273,19 @@ class RunScene(Scene):
             if g.button(sr, "VENDER", "sell", size=9):
                 w.shop_sell(self.sel_weapon)
                 self.sel_weapon = None
-        # monedas y parte del turno
+        # monedas y avance del turno (texto arriba, enemigos en rejilla compacta)
         surf.blit(I.get_icon("ic_s_coin"), (92, 32))
         self.app.fonts.text(surf, str(int(w.coins)), (106, 34), size=14, color=K.C["ambar"], shadow=True)
         nexth = w.wave + 1
         if nexth <= K.HORAS_NOCHE:
-            self.app.fonts.text(surf, f"SIGUIENTE: hora {nexth} — {K.fmt_hora(nexth)}", (92, 52), size=10,
+            self.app.fonts.text(surf, f"SIGUIENTE: hora {nexth} — {K.fmt_hora(nexth)}", (150, 38), size=10,
                                 color=K.C["crema"], shadow=True)
             comp = sorted(set(waves.composition(nexth, w.rng, w.mods)))
-            for k, eid in enumerate(comp[:10]):
+            for k, eid in enumerate(comp[:8]):
                 sp = S.get(CE.BY_ID[eid]["sprite"])
-                surf.blit(sp.n, (92 + k * 22, 66))
+                surf.blit(sp.small, (92 + (k % 4) * 21, 54 + (k // 4) * 14))
         else:
-            self.app.fonts.text(surf, "SIGUIENTE: HORA EXTRA", (92, 52), size=10, color=K.C["morado_claro"], shadow=True)
+            self.app.fonts.text(surf, "SIGUIENTE: HORA EXTRA", (150, 38), size=10, color=K.C["morado_claro"], shadow=True)
 
     # ------------------------------------------------------------- pausa
     def _ui_pause(self):
@@ -383,6 +383,26 @@ class RunScene(Scene):
             self.app.set_scene("menu")
 
     # ------------------------------------------------------------- fin de run
+    def _unlock_icon(self, unlock_id: str):
+        """Icono pequeño (hasta 14 px de alto) para un desbloqueo, o None."""
+        kind, _, name = unlock_id.partition(":")
+        ic = None
+        try:
+            if kind == "char":
+                from .content import chars as _CC
+                d = _CC.BY_ID.get(name)
+                ic = S.get(d["sprite"]).small if d else None
+            elif kind == "weapon":
+                ic = I.get_icon(CW.BY_ID[name]["icon"])
+            elif kind == "item":
+                ic = I.get_icon(CI.BY_ID[name]["icon"])
+        except Exception:
+            return None
+        if ic is not None and ic.get_height() > 14:
+            w2 = max(1, ic.get_width() * 14 // ic.get_height())
+            ic = pygame.transform.smoothscale(ic, (w2, 14))
+        return ic
+
     def _ui_end(self):
         surf = self.app.screen
         g = self.gui
@@ -413,11 +433,38 @@ class RunScene(Scene):
             ("CHISPAS GANADAS", f"+{h.get('chispas', 0)}"),
         ]
         for k, (a, b) in enumerate(rows):
-            y = 100 + k * 20
+            y = 98 + k * 19
             col_t = (70, 52, 30)
             self.app.fonts.text(surf, a, (126, y), size=12, color=col_t)
             self.app.fonts.text(surf, str(b), (400, y), size=12, color=(140, 70, 10) if k == 6 else col_t,
                                 anchor="topright", shadow=False)
+        # desbloqueos de la noche (alertas claras al terminar la partida)
+        rep = getattr(w, "unlock_report", [])
+        if rep:
+            g.panel((110, 230, 420, 58), "slab", "DESBLOQUEADO ESTA NOCHE")
+            yy = 252
+            shown = 0
+            for (kind2, val) in rep:
+                if shown >= 3:
+                    break
+                if kind2 == "guardia":
+                    self.app.fonts.text(surf, f"NIVEL DE GUARDIA {val} — {K.GUARDIA_NAMES.get(val, '')}",
+                                        (126, yy), size=10, color=K.C["ambar"], shadow=True)
+                else:
+                    lbl, disp, _k3, _nm3 = w.unlock_label(val)
+                    icon = self._unlock_icon(val)
+                    if icon is not None:
+                        surf.blit(icon, (124, yy - 1))
+                        self.app.fonts.text(surf, f"{lbl}: {disp}", (140, yy), size=10,
+                                            color=K.C["teal_claro"], shadow=True)
+                    else:
+                        self.app.fonts.text(surf, f"{lbl}: {disp}", (126, yy), size=10,
+                                            color=K.C["teal_claro"], shadow=True)
+                shown += 1
+                yy += 12
+            if len(rep) > shown:
+                self.app.fonts.text(surf, f"+{len(rep) - shown} más — míralo en SELLOS", (126, yy - 1), size=9,
+                                    color=K.C["gris"])
         # habitat de botones
         if victory:
             if g.button(pygame.Rect(180, 292, 130, 26), "HORA EXTRA ▶", "endless", size=11):
@@ -484,16 +531,19 @@ class RunScene(Scene):
             bar(surf, (70, 9, 110, 8), frac, K.C["ambar_osc"])
             # marcas de avalancha
             pygame.draw.rect(surf, K.C["rojo_claro"], (70 + int(110 * 0.62), 9, 2, 8))
-        # vida (bombilla)
+        # vida (bombilla): caja con barra y número grande, siempre legible
         hp = w.player.hp / max(1.0, w.player.max_hp)
-        bar(surf, (8, K.H - 26, 150, 12), hp, K.C["rojo_claro"] if hp < 0.4 else K.C["teal_claro"])
-        f.text(surf, f"{int(w.player.hp)}", (12, K.H - 20), size=10, anchor="midleft",
-               color=K.C["negro"] if hp >= 0.45 else K.C["crema"], shadow=hp < 0.45)
+        pygame.draw.rect(surf, (8, 10, 18), (8, K.H - 31, 166, 17), border_radius=3)
+        pygame.draw.rect(surf, K.C["azul"], (8, K.H - 31, 166, 17), 1, border_radius=3)
+        bar(surf, (12, K.H - 27, 158, 9), hp, K.C["rojo_claro"] if hp < 0.4 else K.C["teal_claro"])
+        f.text(surf, f"{int(w.player.hp)}", (91, K.H - 22), kind="silkb", size=12,
+               color=K.C["crema"], anchor="center", shadow=True)
         # xp
         nxt = max(1.0, w.xp_next)
         xp_frac = clamp(w.xp / nxt, 0, 1)
         bar(surf, (8, K.H - 12, K.W - 16, 8), xp_frac, K.C["teal"])
-        f.text(surf, f"Nv {w.level}", (K.W - 8, K.H - 25), size=11, color=K.C["teal_claro"], anchor="topright", shadow=True)
+        f.text(surf, f"Nv {w.level}", (K.W - 45, K.H - 20), kind="silkb", size=11, color=K.C["teal_claro"],
+               anchor="center", shadow=True)
         # monedas
         surf.blit(I.get_icon("ic_s_coin"), (K.W - 70, 6))
         f.text(surf, str(int(w.coins)), (K.W - 56, 8), size=13, color=K.C["ambar"], shadow=True)
@@ -518,10 +568,10 @@ class RunScene(Scene):
             surf.blit(icon, (x, K.H - 60))
             for lv in range(inst.level):
                 pygame.draw.rect(surf, K.C["ambar"], (x + 2 + lv * 5, K.H - 44, 3, 3))
-        # ítems
-        for i, iid in enumerate(w.player.items[:18]):
+        # ítems (crecen hacia arriba; nunca pisan "Nv" ni la barra de XP)
+        for i, iid in enumerate(w.player.items[:27]):
             icon = I.get_icon(CI.BY_ID[iid]["icon"])
-            surf.blit(icon, (K.W - 14 - (i % 9) * 15, K.H - 44 + (i // 9) * 16))
+            surf.blit(icon, (K.W - 14 - (i % 9) * 15, K.H - 60 - (i // 9) * 16))
         # jefe
         if w.boss is not None:
             b = w.boss

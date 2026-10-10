@@ -813,31 +813,39 @@ def _pp_lamp():
 # ==========================================================================
 # SUELO (bake completo de la arena)
 # ==========================================================================
-def bake_floor(seed=11):
+def bake_floor(seed=11, palette=None, zones=None):
+    """Suelo de la planta. palette y zones permiten variar la decoración por mapa."""
     import random as _r
     rnd = _r.Random(seed)
+    p = dict(base=(26, 31, 52), alt=(29, 35, 58), speck=(35, 43, 70), speck2=(47, 61, 94),
+             zone_a=(31, 42, 66), zone_b=(33, 40, 62), zone_c=(36, 44, 68), wall=(44, 54, 84),
+             rug_base=None)
+    if palette:
+        p.update(palette)
+    zone_default = [(60, 60, 260, 200, "zone_a"), (560, 40, 300, 200, "zone_b"),
+                    (420, 300, 300, 220, "zone_a"), (100, 330, 260, 190, "zone_b"),
+                    (760, 300, 220, 220, "zone_c")]
+    zl = zones or zone_default
+    dark = tuple(max(0, c - 14) for c in p["base"])
     s = surf(K.ARENA_W, K.ARENA_H)
-    s.fill((26, 31, 52))
+    s.fill(p["base"])
     for x in range(0, K.ARENA_W, 48):
         for y in range(0, K.ARENA_H, 48):
             if (x // 48 + y // 48) % 2 == 0:
-                pygame.draw.rect(s, (29, 35, 58), (x, y, 48, 48))
+                pygame.draw.rect(s, p["alt"], (x, y, 48, 48))
     for _ in range(3200):
-        c = (35, 43, 70) if rnd.random() < 0.8 else (47, 61, 94)
+        c = p["speck"] if rnd.random() < 0.8 else p["speck2"]
         s.set_at((rnd.randrange(K.ARENA_W), rnd.randrange(K.ARENA_H)), c)
-    # zonas de moqueta (salas de cubículos)
-    zones = [(60, 60, 260, 200, (31, 42, 66)), (560, 40, 300, 200, (33, 40, 62)),
-             (420, 300, 300, 220, (31, 42, 66)), (100, 330, 260, 190, (33, 40, 62)),
-             (760, 300, 220, 220, (36, 44, 68))]
-    for (zx, zy, zw, zh, zc) in zones:
-        rect(s, zx + 3, zy + 3, zw, zh, (20, 24, 42))
-        rect(s, zx, zy, zw, zh, zc)
-        pygame.draw.rect(s, (44, 54, 84), (zx, zy, zw, zh), 1)
+    # zonas de moqueta (salas)
+    for (zx, zy, zw, zh, zk) in zl:
+        rect(s, zx + 3, zy + 3, zw, zh, dark)
+        rect(s, zx, zy, zw, zh, p[zk])
+        pygame.draw.rect(s, p["wall"], (zx, zy, zw, zh), 1)
     # alfombras
     for _ in range(5):
         rx, ry = rnd.randrange(40, K.ARENA_W - 200), rnd.randrange(40, K.ARENA_H - 160)
         rw, rh = rnd.randrange(90, 170), rnd.randrange(70, 120)
-        base = rnd.choice([(70, 60, 40), (40, 66, 72), (60, 44, 66)])
+        base = p["rug_base"] or rnd.choice([(70, 60, 40), (40, 66, 72), (60, 44, 66)])
         rect(s, rx, ry, rw, rh, base)
         pygame.draw.rect(s, tuple(min(255, c + 22) for c in base), (rx, ry, rw, rh), 1)
         for i in range(4):
@@ -845,12 +853,11 @@ def bake_floor(seed=11):
     # manchas de café
     for _ in range(14):
         cx, cy = rnd.randrange(30, K.ARENA_W - 30), rnd.randrange(30, K.ARENA_H - 30)
-        pygame.draw.circle(s, (22, 25, 40), (cx, cy), rnd.randrange(4, 12))
-        pygame.draw.circle(s, (18, 20, 34), (cx, cy), rnd.randrange(2, 5))
+        pygame.draw.circle(s, tuple(max(0, c - 6) for c in p["base"]), (cx, cy), rnd.randrange(4, 12))
+        pygame.draw.circle(s, dark, (cx, cy), rnd.randrange(2, 5))
     # bordes oscuros
     for i in range(10):
-        a = 60 - i * 6
-        pygame.draw.rect(s, (14, 17, 30), (i, i, K.ARENA_W - i * 2, K.ARENA_H - i * 2), 1)
+        pygame.draw.rect(s, tuple(max(0, c - 12) for c in p["base"]), (i, i, K.ARENA_W - i * 2, K.ARENA_H - i * 2), 1)
     return s
 
 
@@ -863,3 +870,48 @@ def required_names() -> list[str]:
 def draw_shadow(target, x, y, w):
     sh = shadow(w)
     target.blit(sh, (int(x - sh.get_width() // 2), int(y - sh.get_height() // 2)))
+
+
+# ==========================================================================
+# ICONO DE LA APP (lámpara de escritorio inconfundible; .ico + ventana)
+# ==========================================================================
+def lamp_icon(size: int) -> pygame.Surface:
+    """Dibuja el icono del juego: lámpara de escritorio encendida sobre noche."""
+    u = size / 100.0
+
+    def px(v):
+        return max(1, int(v * u)) if v > 0 else int(v * u)
+
+    def P(x, y):
+        return (px(x), px(y))
+
+    s = pygame.Surface((size, size), pygame.SRCALPHA)
+    r = max(3, px(14))
+    pygame.draw.rect(s, (14, 18, 34), (0, 0, size, size), border_radius=r)
+    pygame.draw.rect(s, (52, 66, 108), (0, 0, size, size), max(1, px(2.5)), border_radius=r)
+    # luna
+    pygame.draw.circle(s, (246, 238, 196), P(80, 17), max(1, px(5)))
+    pygame.draw.circle(s, (14, 18, 34), P(77.5, 15), max(1, px(4)))
+    # halo cálido
+    g = glow(max(6, int(size * 0.5)), (255, 200, 120), 70)
+    s.blit(g, (px(50) - g.get_width() // 2, px(62) - g.get_height() // 2),
+           special_flags=pygame.BLEND_RGB_ADD)
+    # haz de luz
+    beam = pygame.Surface((size, size), pygame.SRCALPHA)
+    pygame.draw.polygon(beam, (255, 205, 120, 64), [P(30, 52), P(70, 52), P(94, 95), P(6, 95)])
+    s.blit(beam, (0, 0))
+    # base
+    pygame.draw.ellipse(s, (58, 66, 96), (px(27), px(79), px(46), px(12)))
+    pygame.draw.ellipse(s, (96, 108, 150), (px(34), px(80), px(32), px(7)))
+    # tallo
+    pygame.draw.rect(s, (120, 132, 170), (px(47.5), px(50), max(1, px(5)), px(32)))
+    # pantalla (trapecio) con borde
+    shade = [P(26, 24), P(74, 24), P(87, 50), P(13, 50)]
+    pygame.draw.polygon(s, (232, 176, 88), shade)
+    pygame.draw.polygon(s, (120, 78, 34), shade, max(1, px(2.4)))
+    # boca interior
+    pygame.draw.rect(s, (120, 78, 34), (px(19), px(48), px(62), max(1, px(3.5))))
+    # bombilla
+    pygame.draw.ellipse(s, (255, 238, 170), (px(43), px(51.5), px(14), max(1, px(6.5))))
+    pygame.draw.ellipse(s, (255, 252, 226), (px(46.5), px(52.5), px(7), max(1, px(3.4))))
+    return s

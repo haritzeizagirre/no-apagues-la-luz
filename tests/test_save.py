@@ -58,7 +58,11 @@ def test_achievement_evaluate_and_unlock():
     newly = ach.evaluate(s, {"best_wave": 8})
     ids = [n[0] for n in newly]
     assert "off_h5" in ids and "off_h8" in ids
-    assert s.has("char:tosty")  # desbloqueo de off_h8
+    assert not s.has("char:tosty")  # tosty ya NO se desbloquea en la hora 8
+    newly = ach.evaluate(s, {"best_wave": 10})
+    ids = [n[0] for n in newly]
+    assert "off_h10" in ids
+    assert s.has("char:tosty")  # desbloqueo de off_h10
     # el premio en chispas lo acredita el llamador (RunWorld._check_achievements)
     total = sum(n[1] for n in newly)
     assert total >= 25

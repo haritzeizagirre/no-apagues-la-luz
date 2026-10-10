@@ -254,6 +254,7 @@ class Fonts:
             "vt": K.FONTS / "VT323-Regular.ttf",
             "silk": K.FONTS / "Silkscreen-Regular.ttf",
             "silkb": K.FONTS / "Silkscreen-Bold.ttf",
+            "pix": K.FONTS / "PixelifySans.ttf",
         }
         self.ok = all(p.exists() for p in self.files.values())
 
@@ -263,6 +264,7 @@ class Fonts:
         "✕": "X", "×": "x", "✓": "•", "✔": "OK",
         "✦": "*", "★": "*", "◆": "*",
         "↔": "<->", "→": "»", "↑": "^", "↓": "v", "🗡": "X",
+        "≤": "<=", "≥": ">=", "≈": "~",
     }
 
     @classmethod
@@ -272,13 +274,15 @@ class Fonts:
             return s
         return "".join(cls.GLYPH_FALLBACK.get(c, c) for c in s)
 
-    # VT323 a tamaños pequeños colapsa (glifos mazacote): para text UI diminuto se
-    # sustituye por Silkscreen (diseñada para cuerpos pequeños) en tamaño equivalente.
-    SMALL_UI = {8: ("silk", 9), 9: ("silk", 9), 10: ("silk", 10), 11: ("silk", 11), 12: ("silk", 12)}
+    # VT323 y Silkscreen a tamaños pequeños cuestan de leer: el cuerpo de UI usa
+    # Pixelify Sans (también pixel, pero con glifos más abiertos) un punto más grande.
+    SMALL_UI = {8: ("pix", 10), 9: ("pix", 10), 10: ("pix", 11), 11: ("pix", 12), 12: ("pix", 13)}
 
     def font(self, kind="vt", size=14) -> pygame.font.Font:
-        if kind == "vt":
+        if kind in ("vt", "silk") and size <= 12:
             kind, size = self.SMALL_UI.get(size, (kind, size))
+        if kind == "pix" and not self.files["pix"].exists():
+            kind = "silk"   # por si falta el fichero de la fuente nueva
         key = (kind, size)
         if key not in self.cache:
             path = self.files.get(kind, self.files["vt"])
@@ -388,6 +392,11 @@ class App:
         self.view = (K.W, K.H)
         self._win_created = False   # solo la primera ventana se centra sola
         self._create_window()
+        try:
+            from . import sprites as _S
+            pygame.display.set_icon(_S.lamp_icon(32))   # lámpara en la barra de tareas
+        except Exception:
+            pass
         self.screen = pygame.Surface((K.W, K.H)).convert()
         self.scenes: dict[str, Scene] = {}
         self.scene: Scene | None = None

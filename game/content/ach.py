@@ -7,13 +7,13 @@ ACHIEVEMENTS = [
     dict(id="off_h5", name="Las 23:00", desc="Aguanta hasta la hora 5.", chispas=25,
          cond=("run", "best_wave", 5)),
     dict(id="off_h8", name="Cambio de guardia", desc="Aguanta hasta la hora 8.",
-         chispas=30, unlock="char:tosty", cond=("run", "best_wave", 8)),
-    dict(id="off_h10", name="Media noche", desc="Aguanta hasta la hora 10.", chispas=40,
-         cond=("run", "best_wave", 10)),
+         chispas=30, cond=("run", "best_wave", 8)),
+    dict(id="off_h10", name="Media noche", desc="Aguanta hasta la hora 10.",
+         chispas=40, unlock="char:tosty", cond=("run", "best_wave", 10)),
     dict(id="off_h12", name="La hora del café malo", desc="Aguanta hasta la hora 12.",
-         chispas=50, unlock="char:radio", cond=("run", "best_wave", 12)),
+         chispas=50, unlock="mutator:sobrecarga", cond=("run", "best_wave", 12)),
     dict(id="off_h15", name="Madrugada hostil", desc="Aguanta hasta la hora 15.",
-         chispas=70, unlock="mutator:sobrecarga", cond=("run", "best_wave", 15)),
+         chispas=70, unlock="char:radio", cond=("run", "best_wave", 15)),
     dict(id="off_jefe1", name="Despertar", desc="Derrota a EL DESPERTADOR.", chispas=40,
          cond=("boss", "despertador", 1)),
     dict(id="off_jefe2", name="Reunión cerrada", desc="Derrota a LA REUNIÓN INTERMINABLE.",
@@ -25,21 +25,21 @@ ACHIEVEMENTS = [
     dict(id="off_endless3", name="Hora extra", desc="Llega a la hora extra 3.", chispas=100,
          unlock="mutator:turno_doble", cond=("run", "endless", 3)),
     dict(id="off_guardia2", name="Guardia 2 superada", desc="Gana una noche en Guardia 2.",
-         chispas=80, unlock="char:alargador", cond=("stat", "guardia_best", 2)),
+         chispas=80, unlock="mutator:apagon", cond=("stat", "guardia_best", 2)),
     dict(id="off_guardia3", name="Guardia 3 superada", desc="Gana una noche en Guardia 3.",
-         chispas=120, unlock="mutator:apagon", cond=("stat", "guardia_best", 3)),
+         chispas=120, unlock="char:alargador", cond=("stat", "guardia_best", 3)),
     dict(id="off_guardia4", name="Guardia 4 superada", desc="Gana una noche en Guardia 4.",
          chispas=160, unlock="mutator:jefe_furioso", cond=("stat", "guardia_best", 4)),
     dict(id="off_guardia5", name="Final de trimestre", desc="Gana una noche en Guardia 5. Nada más que decir.",
          chispas=300, cond=("stat", "guardia_best", 5)),
-    dict(id="off_kills300", name="Pequeño caos", desc="Elimina 300 enemigos en total.",
-         chispas=30, unlock="char:ventilin", cond=("stat", "kills", 300)),
-    dict(id="off_kills1000", name="Exterminio de cubículos", desc="Elimina 1000 enemigos en total.",
-         chispas=60, unlock="char:raton", cond=("stat", "kills", 1000)),
+    dict(id="off_kills300", name="Pequeño caos", desc="Elimina 600 enemigos en total.",
+         chispas=30, unlock="char:ventilin", cond=("stat", "kills", 600)),
+    dict(id="off_kills1000", name="Exterminio de cubículos", desc="Elimina 2000 enemigos en total.",
+         chispas=60, unlock="char:raton", cond=("stat", "kills", 2000)),
     dict(id="off_kills3000", name="Almacén vacío", desc="Elimina 3000 enemigos en total.",
          chispas=120, unlock="mutator:plaga", cond=("stat", "kills", 3000)),
-    dict(id="off_crit200", name="Puntería de oficina", desc="Asesta 200 críticos.", chispas=50,
-         unlock="char:grapa", cond=("stat", "crits", 200)),
+    dict(id="off_crit200", name="Puntería de oficina", desc="Asesta 400 críticos.", chispas=50,
+         unlock="char:grapa", cond=("stat", "crits", 400)),
     dict(id="off_crit500", name="Pulso de cirujano", desc="Asesta 500 críticos.", chispas=90,
          unlock="weapon:laser", cond=("stat", "crits", 500)),
     dict(id="off_monedas1000", name="Buchaca llena", desc="Consigue 1000 monedas en total.",
@@ -63,6 +63,11 @@ ACHIEVEMENTS = [
 ]
 
 BY_ID = {a["id"]: a for a in ACHIEVEMENTS}
+
+
+def seal_for(unlock_id: str):
+    """Sello (logro) que otorga este desbloqueo, si existe."""
+    return next((a for a in ACHIEVEMENTS if a.get("unlock") == unlock_id), None)
 
 
 def evaluate(save, runstats: dict | None = None) -> list[tuple[str, int, str | None]]:

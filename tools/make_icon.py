@@ -20,19 +20,7 @@ from game import sprites as S  # noqa: E402
 def build_icon_png(size: int) -> bytes:
     pygame.display.init()
     pygame.display.set_mode((64, 64))
-    surf = pygame.Surface((size, size), pygame.SRCALPHA)
-    # fondo redondeado
-    pygame.draw.rect(surf, (16, 20, 38), (0, 0, size, size), border_radius=max(4, size // 6))
-    pygame.draw.rect(surf, (44, 58, 99), (0, 0, size, size), max(1, size // 48), border_radius=max(4, size // 6))
-    # lámpara escalada
-    lamp = S.get("char_lia").n
-    scale = max(1, int(size * 0.72 / lamp.get_width()))
-    big = pygame.transform.scale(lamp, (lamp.get_width() * scale, lamp.get_height() * scale))
-    surf.blit(big, ((size - big.get_width()) // 2, (size - big.get_height()) // 2 + size // 14))
-    # halo
-    g = S.glow(max(8, size // 3), (255, 190, 110), 90)
-    surf.blit(g, (size // 2 - g.get_width() // 2, size // 2 - g.get_height() // 2),
-              special_flags=pygame.BLEND_RGB_ADD)
+    surf = S.lamp_icon(size)  # lámpara clara (misma que en la ventana)
     tmp = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
     tmp.close()
     pygame.image.save(surf, tmp.name)

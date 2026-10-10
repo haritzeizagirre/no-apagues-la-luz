@@ -18,6 +18,22 @@ from .content import metaup as MU
 from .content import mutators as CM
 from .content import strings as ST
 from .content import weapons as CW
+from .content import maps as CMP
+
+
+def _seal_progress(save, seal) -> str | None:
+    """Progreso actual hacia un sello (o None si no aplica)."""
+    kind, key, n = seal["cond"][0], seal["cond"][1], seal["cond"][2]
+    cur = 0
+    if kind in ("stat", "run"):
+        cur = save.data["stats"].get(key, 0)
+    elif kind == "enemy":
+        cur = save.data["bestiary"].get(key, 0)
+    elif kind == "boss":
+        cur = save.data["bestiary_boss"].get(key, 0)
+    if 0 < int(cur) < n:
+        return f"Progreso: {int(cur)}/{n}"
+    return None
 
 
 # ---------------------------------------------------------------- fondo común
@@ -239,7 +255,16 @@ class CharSelectScene(BaseScene):
                 self._refresh_guardia()
                 self.app.audio.play("ui_click")
             if hov and not unlocked:
-                g.tooltip(r, c["name"], ["Bloqueado.", f"Se desbloquea con el sello correspondiente."])
+                lines = ["Bloqueado."]
+                seal = ACH.seal_for(f"char:{c['id']}")
+                if seal:
+                    lines.append(f"Sello «{seal['name']}»: {seal['desc']}")
+                    prog = _seal_progress(self.app.save, seal)
+                    if prog:
+                        lines.append(prog)
+                else:
+                    lines.append("Se desbloquea con el sello correspondiente.")
+                g.tooltip(r, c["name"], lines)
         # detalle
         c = CC.BY_ID[self.sel]
         panel = pygame.Rect(330, 52, 288, 240)
@@ -302,6 +327,12 @@ class CharSelectScene(BaseScene):
                 pygame.draw.rect(self.app.screen, K.C["ambar"], r, 2, border_radius=4)
         f.text(self.app.screen, f"Mejor: guardia {saw}" if saw else "Sin victorias todavía", (24, gy + 24),
                size=10, color=K.C["gris"])
+        # planta del edificio según la guardia elegida
+        mp = CMP.for_guardia(self.guardia)
+        f.text(self.app.screen, f"MAPA: {mp.get('short', mp['name'])}", (328, 188), size=10,
+               color=K.C["crema"], shadow=True, anchor="topright")
+        f.text(self.app.screen, "otra planta cada guardia", (328, 207), size=9,
+               color=K.C["gris"], anchor="topright")
         # marcas
         my = 248
         f.text(self.app.screen, "MARCAS DEL TURNO (riesgo ↔ chispas)", (24, my - 16), size=10, color=K.C["papel2"])

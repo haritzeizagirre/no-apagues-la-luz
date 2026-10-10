@@ -14,6 +14,7 @@ from . import sprites as S
 from .core import ARENA_H, ARENA_W, Camera, Hash, Particles, Texts, clamp
 from .entities import Enemy, Pickup, Player, Prop, Proj, Puddle, WeaponInst, make_boss, make_enemy
 from .content import ach, chars as CC, enemies as CE, items as CI, metaup
+from .content import maps as CMP
 from .content import mutators as CM, perks as CP, strings as ST, waves
 from .content import weapons as CW
 
@@ -33,6 +34,12 @@ class RunWorld:
         self.mut_ids = list(mut_ids)
         self.mods = CM.aggregate(self.mut_ids)
         self.assist = bool(self.settings["assist"])
+        # snapshot para el informe de desbloqueos al terminar la noche
+        self._unlocked0 = set(self.save.data["unlocked"])
+        self._guardia0 = self.save.guardia_max(char_id)
+        self.unlock_report: list[tuple[str, object]] = []
+        # planta del edificio según la guardia
+        self.map = CMP.for_guardia(self.guardia)
 
         # --- carga y estadísticas
         self.meta_adds, self.meta_special = metaup.aggregate_ranks(self.save.data["ranks"])
@@ -58,7 +65,7 @@ class RunWorld:
         self.cam = Camera()
         self.cam.follow(self.player.x, self.player.y, snap=True)
         self.hash = Hash(44)
-        self.floor = S.bake_floor(self.rng.randrange(1000))
+        self.floor = S.bake_floor(self.rng.randrange(1000), self.map.get("floor"), self.map.get("zones"))
         self._make_props()
 
         # --- estado del run
@@ -208,23 +215,20 @@ class RunWorld:
 
     # ================================================================ props
     def _make_props(self):
-        rng = self.rng
-        spots = [
-            ("desk", 8), ("chair", 6), ("plant", 5), ("cooler", 2), ("cabinet", 6), ("box", 10), ("lamp", 6),
-        ]
-        for kind, n in spots:
-            for _ in range(n):
-                x = rng.uniform(50, ARENA_W - 50)
-                y = rng.uniform(50, ARENA_H - 50)
-                if math.hypot(x - ARENA_W / 2, y - ARENA_H / 2) < 130:
-                    x += 160
-                if kind == "box":
-                    p = Prop("box", x, y, r=9, solid=False, hp=3)
-                elif kind in ("plant", "lamp"):
-                    p = Prop(kind, x, y, r=7, solid=False)
-                else:
-                    p = Prop(kind, x, y, r=16 if kind == "desk" else 13, solid=True)
-                self.props.append(p)
+        """Coloca los muebles del mapa fijo de la planta (sin aleatoriedad)."""
+        for (kind, x, y) in self.map["props"]:
+            self._spawn_prop(kind, x, y)
+        for (x, y) in self.map["boxes"]:
+            self._spawn_prop("box", x, y)
+
+    def _spawn_prop(self, kind: str, x: float, y: float):
+        if kind == "box":
+            p = Prop("box", float(x), float(y), r=9, solid=False, hp=3)
+        elif kind in ("plant", "lamp"):
+            p = Prop(kind, float(x), float(y), r=7, solid=False)
+        else:
+            p = Prop(kind, float(x), float(y), r=16 if kind == "desk" else 13, solid=True)
+        self.props.append(p)
 
     # ================================================================ ciclo
     def update(self, dt):
@@ -1038,10 +1042,18 @@ class RunWorld:
             if unlock:
                 self._toast_unlock(unlock)
 
-    def _toast_unlock(self, unlock_id: str):
+    def unlock_label(self, unlock_id: str):
+        """(etiqueta, nombre, tipo, id) para pintar un desbloqueo."""
         kind, _, name = unlock_id.partition(":")
+        table = {"char": CC.BY_ID, "weapon": CW.BY_ID, "item": CI.BY_ID, "mutator": CM.BY_ID}
+        d = table.get(kind, {}).get(name)
+        disp = d.get("name", name) if d else name
         label = {"char": "CACHARRO", "weapon": "ARMA", "item": "ÍTEM", "mutator": "MARCA"}.get(kind, "NUEVO")
-        self.toast(f"{label} DESBLOQUEADO: {name}", "unlock")
+        return label, disp, kind, name
+
+    def _toast_unlock(self, unlock_id: str):
+        label, disp, _, _ = self.unlock_label(unlock_id)
+        self.toast(f"{label} DESBLOQUEADO: {disp}", "unlock")
 
     def chispas_earned(self, victory: bool) -> int:
         base = self.rs["best_wave"] * 3 + self.kills * 0.06
@@ -1082,6 +1094,13 @@ class RunWorld:
         s.earn(chispas)
         # logros finales (stats ya fusionadas)
         self._check_achievements()
+        # informe de desbloqueos de esta noche (para la pantalla final)
+        for u in s.data["unlocked"]:
+            if u not in self._unlocked0:
+                self.unlock_report.append(("unlock", u))
+        gnow = s.guardia_max(self.char_id)
+        if gnow > self._guardia0:
+            self.unlock_report.append(("guardia", gnow))
         summary = {
             "char": self.char_id, "char_name": self.char["name"], "guardia": self.guardia,
             "wave": self.rs["best_wave"], "hora": K.fmt_hora(min(self.wave, 24)),
