@@ -271,7 +271,13 @@ class Fonts:
             return s
         return "".join(cls.GLYPH_FALLBACK.get(c, c) for c in s)
 
+    # VT323 a tamaños pequeños colapsa (glifos mazacote): para text UI diminuto se
+    # sustituye por Silkscreen (diseñada para cuerpos pequeños) en tamaño equivalente.
+    SMALL_UI = {8: ("silk", 8), 9: ("silk", 8), 10: ("silk", 9), 11: ("silk", 10), 12: ("silk", 10)}
+
     def font(self, kind="vt", size=14) -> pygame.font.Font:
+        if kind == "vt":
+            kind, size = self.SMALL_UI.get(size, (kind, size))
         key = (kind, size)
         if key not in self.cache:
             path = self.files.get(kind, self.files["vt"])
@@ -313,6 +319,17 @@ class Fonts:
                 target.blit(sh, (r.x + 1, r.y - 1))
         target.blit(img, r)
         return r
+
+    def fit(self, text, kind, size, width):
+        """Recorta el texto añadiendo … si excede el ancho disponible (evita desbordes)."""
+        text = self.san(str(text))
+        f = self.font(kind, size)
+        if f.size(text)[0] <= width:
+            return text
+        cut = text
+        while cut and f.size(cut + "…")[0] > width:
+            cut = cut[:-1]
+        return (cut + "…") if cut else "…"
 
     def wrap(self, text, kind, size, width):
         text = self.san(text)
@@ -416,6 +433,11 @@ class App:
             self.scene.leave()
         self.scene = self.scenes[name]
         self.scene.enter(**kw)
+        # El clic/tecla que provocó la transición pertenece a la escena ANTERIOR:
+        # se consume aquí para que la escena entrante no lo re-interprete en el
+        # mismo frame (bots fantasma al dibujarse con input obsoleto).
+        self.input.mouse_clicked = False
+        self.input.mouse_released = False
 
     def sfx(self, name, vol=1.0):
         self.audio.play(name, vol)
@@ -446,7 +468,14 @@ class App:
             self.freeze -= dt
             sim_dt = 0.0
         if self.scene:
+            sc_before = self.scene
             self.scene.update(sim_dt)
+            if self.scene is not sc_before:
+                # transición ocurrida dentro de update: la escena entrante se
+                # dibuja este mismo frame, así que refresca su input AHORA
+                gui = getattr(self.scene, "gui", None)
+                if gui is not None:
+                    gui.begin()
             self.screen.fill(K.C["negro"])
             self.scene.draw(self.screen)
         self.audio.update(dt)
@@ -459,7 +488,7 @@ class App:
             self.fonts.text(self.screen, f"{self.fps:.0f} fps", (K.W - 4, 4), size=10, anchor="topright",
                             color=K.C["ambar"] if self.fps > 50 else K.C["rojo_claro"], shadow=True)
         self._present()
-        return True
+        return self.running
 
     def _present(self):
         vw, vh = self.view

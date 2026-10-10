@@ -65,7 +65,7 @@ class GUI:
             self._tooltip = {"title": title, "lines": lines, "accent": accent or K.C["ambar"]}
 
     # ------------------------------------------------------------- widgets
-    def button(self, rect, label, key=None, style="key", size=12, en=True, icon=None, sub=None, hotkey=None):
+    def button(self, rect, label, key=None, style="key", size=12, en=True, icon=None, sub=None, hotkey=None, kind="vt"):
         r = pygame.Rect(rect)
         hov = r.collidepoint(self.mouse)
         clicked = False
@@ -74,10 +74,10 @@ class GUI:
         if hov and self.click:
             self._sfx_click(en)
             clicked = en
-        self.draw_key(r, label, style, size, en, hov, icon, sub, hotkey)
+        self.draw_key(r, label, style, size, en, hov, icon, sub, hotkey, kind)
         return clicked
 
-    def draw_key(self, r, label, style="key", size=12, en=True, hov=False, icon=None, sub=None, hotkey=None):
+    def draw_key(self, r, label, style="key", size=12, en=True, hov=False, icon=None, sub=None, hotkey=None, kind="vt"):
         s = self.app.screen
         if style == "key":
             base = K.C["marino"] if en else K.C["fondo"]
@@ -93,10 +93,10 @@ class GUI:
                 s.blit(icon, (r.x + 6, r.centery - icon.get_height() // 2))
                 x = r.x + 14 + (r.w - 14) // 2
             self.app.fonts.text(s, label, (x, r.centery - (4 if sub else 0)), size=size, color=col,
-                                shadow=True, anchor="center")
+                                shadow=True, anchor="center", kind=kind)
             if sub:
                 self.app.fonts.text(s, sub, (x, r.centery + 9), size=9, color=K.C["gris"] if en else K.C["gris_osc"],
-                                    shadow=False, anchor="center")
+                                    shadow=False, anchor="center", kind=kind)
             if hotkey:
                 self.app.fonts.text(s, hotkey, (r.right - 5, r.bottom - 4), size=8, color=K.C["gris"],
                                     anchor="bottomright")
@@ -183,6 +183,7 @@ class GUI:
             iy = r.y + 8
             s.blit(icon, (ix, iy))
         if label:
+            label = self.app.fonts.fit(label, "vt", 9, r.w - 8)
             self.app.fonts.text(s, label, (r.centerx, r.bottom - 22), size=9, color=K.C["crema"] if en else K.C["gris"],
                                 anchor="midtop", shadow=True)
         if price is not None:
@@ -215,6 +216,7 @@ class GUI:
         pygame.draw.rect(s, col, r)
         pygame.draw.rect(s, (70, 60, 44), r, 1)
         pygame.draw.rect(s, (150, 140, 120), (r.centerx - 10, r.y - 3, 20, 6))
+        title = self.app.fonts.fit(title, "vt", 11, r.w - 10)
         self.app.fonts.text(s, title, (r.centerx, r.y + 9), size=11, color=INK, anchor="midtop")
         y = r.y + 26
         for ln in lines:

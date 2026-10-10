@@ -55,3 +55,26 @@ def test_glyph_fallback_covers_used_symbols():
     for ch in problematic:
         assert ch in Fonts.GLYPH_FALLBACK, f"falta fallback para {ch!r}"
         assert Fonts.san(ch) != ch or ord(ch) < 128
+
+
+def test_small_ui_uses_silkscreen():
+    """Los textos pequeños con 'vt' deben servirse con Silkscreen (legibilidad)."""
+    from game.core import Fonts
+    f = Fonts()
+    for vt_size, (kind, size) in Fonts.SMALL_UI.items():
+        got = f.font("vt", vt_size)
+        assert got is f.font(kind, size), f"vt@{vt_size} debería ser {kind}@{size}"
+    # los tamaños grandes siguen en VT323
+    big = f.font("vt", 13)
+    assert big is f.font("vt", 13)
+    assert big is not f.font("silk", 13)
+
+
+def test_fit_truncates_with_ellipsis():
+    from game.core import Fonts
+    f = Fonts()
+    long = "Funda antigolpe de gomaespuma reforzada"
+    out = f.fit(long, "vt", 9, 60)
+    assert out.endswith("…")
+    assert f.font("vt", 9).size(out)[0] <= 60
+    assert f.fit("Corto", "vt", 9, 200) == "Corto"

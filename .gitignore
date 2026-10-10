@@ -8,3 +8,4 @@ dist/
 *.spec
 assets/raw_downloads/
 crash_*.txt
+diag_qa.txt

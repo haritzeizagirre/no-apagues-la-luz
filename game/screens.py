@@ -116,7 +116,7 @@ class MenuScene(BaseScene):
         f.text(surf, K.SUBTITLE, (K.W // 2, 90), size=13, color=K.C["crema"], anchor="center", shadow=True)
         g = self.gui
         # botón principal, fila propia a lo ancho
-        if g.button(pygame.Rect(36, 126, 308, 30), "JUGAR ▶", "menu_jugar", size=13):
+        if g.button(pygame.Rect(36, 126, 308, 30), "JUGAR ▶", "menu_jugar", size=12, kind="silk"):
             self.app.set_scene("charsel")
         # rejilla 2×3
         pairs = [("HISTORIA", "lore"), ("EL CAJÓN", "cajon"),
@@ -255,7 +255,7 @@ class CharSelectScene(BaseScene):
             f.text(self.app.screen, line, (panel.x + 12, y), size=11, color=K.C["crema"])
             y += 13
         y += 4
-        f.text(self.app.screen, f"★ {c['perk_desc']}", (panel.x + 12, y), size=11, color=K.C["teal_claro"])
+        f.text(self.app.screen, f"★ {c['perk_desc']}"[:60], (panel.x + 12, y), size=11, color=K.C["teal_claro"])
         # stats con meta
         adds, _ = MU.aggregate_ranks(self.app.save.data["ranks"])
         stats = dict(K.BASE)
@@ -267,7 +267,7 @@ class CharSelectScene(BaseScene):
             stats[k2] += v
         y += 18
         row = [("Vida", f"{int(stats['hp'])}"), ("Vel", f"{int(stats['speed'])}"),
-               ("Daño", f"{stats['dmg']*100:.0f}%"), ("Vel.ataque", f"{stats['atk_speed']*100:.0f}%"),
+               ("Daño", f"{stats['dmg']*100:.0f}%"), ("Ataque", f"{stats['atk_speed']*100:.0f}%"),
                ("Luz", f"{int(stats['light'])}"), ("Crítico", f"{stats['crit']*100:.0f}%")]
         for k2, (a, b) in enumerate(row):
             x = panel.x + 12 + (k2 % 3) * 92
@@ -349,9 +349,9 @@ class CajonScene(BaseScene):
             hov = r.collidepoint(g.mouse)
             pygame.draw.rect(surf, K.C["marino"] if hov else K.C["fondo"], r, border_radius=3)
             pygame.draw.rect(surf, K.C["azul"] if not full else K.C["ambar_osc"], r, 1, border_radius=3)
-            self.app.fonts.text(surf, up["name"], (r.x + 6, r.y + 2), size=11,
+            self.app.fonts.text(surf, self.app.fonts.fit(up["name"], "vt", 11, r.w - 78), (r.x + 6, r.y + 2), size=11,
                                 color=K.C["crema"] if not full else K.C["ambar_claro"], shadow=True)
-            self.app.fonts.text(surf, up["desc"], (r.x + 6, r.y + 13), size=9, color=K.C["papel2"])
+            self.app.fonts.text(surf, self.app.fonts.fit(up["desc"], "vt", 9, r.w - 14), (r.x + 6, r.y + 13), size=9, color=K.C["papel2"])
             # pips de rango
             for k in range(maxr):
                 col = K.C["ambar"] if k < rank else K.C["gris_osc"]
@@ -431,7 +431,7 @@ class SellosScene(BaseScene):
             ic2 = ic.copy()
             ic2.set_alpha(255 if done else 70)
             surf.blit(ic2, (r.x + 3, r.y + 3))
-            self.app.fonts.text(surf, a["name"], (r.x + 20, r.y + 1), size=10,
+            self.app.fonts.text(surf, self.app.fonts.fit(a["name"], "vt", 10, 205), (r.x + 20, r.y + 1), size=10,
                                 color=K.C["crema"] if done else K.C["gris"], shadow=True)
             cur, target = self._progress(save, a["cond"])
             if target:
@@ -494,7 +494,7 @@ class ArchivoScene(BaseScene):
                 surf.blit(sp.small, (r.x + 6, r.y + 8))
                 isboss = any(b["id"] == e["id"] for b in CE.BOSSES)
                 n = save.data["bestiary_boss"].get(e["id"], 0) if isboss else save.data["bestiary"].get(e["id"], 0)
-                self.app.fonts.text(surf, e["name"][:20], (r.x + 24, r.y + 4), size=10,
+                self.app.fonts.text(surf, self.app.fonts.fit(e["name"], "vt", 10, 160), (r.x + 24, r.y + 4), size=10,
                                     color=K.C["rojo_claro"] if isboss else K.C["crema"], shadow=True)
                 self.app.fonts.text(surf, f"{'X' if isboss else 'x'}{n}", (r.x + 24, r.y + 15), size=9,
                                     color=K.C["ambar"],)
