@@ -118,7 +118,7 @@ class GUI:
             self._sfx_click(True)
             val = not value
         c = K.C["teal_claro"] if val else K.C["gris_osc"]
-        self.draw_key(r, ("✓ " if val else "· ") + label, "key", 11, True, hov)
+        self.draw_key(r, ("• " if val else "· ") + label, "key", 11, True, hov)
         pygame.draw.rect(self.app.screen, c, (r.right - 14, r.y + 5, 8, 8), border_radius=2)
         return val
 
@@ -231,7 +231,7 @@ class GUI:
             for sub in fonts.wrap(ln, "vt", 11, 190) or [""]:
                 wrapped.append(sub)
                 w = max(w, fonts.font("vt", 11).size(sub)[0])
-        w = max(w, fonts.font("vt", 12).size(tt["title"])[0]) + 16
+        w = max(w, fonts.font("vt", 12).size(fonts.san(tt["title"]))[0]) + 16
         h = 20 + len(wrapped) * 12 + 8
         mx, my = self.mouse
         x = clamp(mx + 12, 4, K.W - w - 4)

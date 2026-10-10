@@ -442,7 +442,7 @@ class SellosScene(BaseScene):
                                 color=K.C["verde_claro"] if done else K.C["papel2"], anchor="midright", shadow=True)
             if hov:
                 g.tooltip(r, a["name"], self.app.fonts.wrap(a["desc"], "vt", 11, 190) + [f"Recompensa: {a['chispas']} ✦"])
-        self.app.fonts.text(surf, f"SELLOS: {self.total}/{len(ACH.ACHIEVEMENTS)}   (↑↓ desplazar)", (K.W // 2, K.H - 40),
+        self.app.fonts.text(surf, f"SELLOS: {self.total}/{len(ACH.ACHIEVEMENTS)}   (ARRIBA/ABAJO para mover)", (K.W // 2, K.H - 40),
                             size=11, color=K.C["crema"], anchor="center", shadow=True)
         if self.back_button(surf):
             self.app.set_scene("menu")
@@ -496,14 +496,14 @@ class ArchivoScene(BaseScene):
                 n = save.data["bestiary_boss"].get(e["id"], 0) if isboss else save.data["bestiary"].get(e["id"], 0)
                 self.app.fonts.text(surf, e["name"][:20], (r.x + 24, r.y + 4), size=10,
                                     color=K.C["rojo_claro"] if isboss else K.C["crema"], shadow=True)
-                self.app.fonts.text(surf, f"{'🗡 ' if isboss else 'x'}{n}", (r.x + 24, r.y + 15), size=9,
+                self.app.fonts.text(surf, f"{'X' if isboss else 'x'}{n}", (r.x + 24, r.y + 15), size=9,
                                     color=K.C["ambar"],)
                 if hov:
                     g.tooltip(r, e["name"], self.app.fonts.wrap(e.get("flavor", ""), "vt", 11, 190))
             else:
                 surf.blit(I.get_icon("ic_ui_lock"), (r.x + 8, r.y + 9))
                 self.app.fonts.text(surf, "?", (r.x + 28, r.y + 8), size=12, color=K.C["gris_osc"])
-        self.app.fonts.text(surf, f"ARCHIVO: {seen_n}/{len(entries)}   (↑↓ desplazar)", (K.W // 2, K.H - 40),
+        self.app.fonts.text(surf, f"ARCHIVO: {seen_n}/{len(entries)}   (ARRIBA/ABAJO para mover)", (K.W // 2, K.H - 40),
                             size=11, color=K.C["crema"], anchor="center", shadow=True)
         if self.back_button(surf):
             self.app.set_scene("menu")

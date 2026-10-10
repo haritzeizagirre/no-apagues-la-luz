@@ -256,6 +256,21 @@ class Fonts:
         }
         self.ok = all(p.exists() for p in self.files.values())
 
+    # glifos que las fuentes pixel no traen: se sustituyen al medir/renderizar (jamás tofu).
+    GLYPH_FALLBACK = {
+        "▶": "»", "►": "»", "◀": "«", "◄": "«",
+        "✕": "×", "✓": "•", "✔": "OK",
+        "✦": "*", "★": "*", "◆": "*",
+        "↔": "<->", "→": "»", "↑": "^", "↓": "v", "🗡": "X",
+    }
+
+    @classmethod
+    def san(cls, text) -> str:
+        s = str(text)
+        if all(ord(c) < 128 for c in s):
+            return s
+        return "".join(cls.GLYPH_FALLBACK.get(c, c) for c in s)
+
     def font(self, kind="vt", size=14) -> pygame.font.Font:
         key = (kind, size)
         if key not in self.cache:
@@ -268,6 +283,7 @@ class Fonts:
 
     def text(self, target, text, pos, kind="vt", size=14, color=K.C["crema"],
              anchor="topleft", shadow=False, alpha=255, shadow_col=(8, 9, 15), bold_shadow=False):
+        text = self.san(text)
         f = self.font(kind, size)
         img = f.render(str(text), False, color)
         if alpha < 255:
@@ -299,6 +315,7 @@ class Fonts:
         return r
 
     def wrap(self, text, kind, size, width):
+        text = self.san(text)
         f = self.font(kind, size)
         words = text.split()
         lines, cur = [], ""
