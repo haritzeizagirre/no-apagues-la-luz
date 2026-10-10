@@ -14,7 +14,7 @@ def is_boss_hora(hora: int) -> bool:
 
 def wave_len(hora: int, mods: dict) -> float:
     if is_boss_hora(hora) and hora <= K.HORAS_NOCHE:
-        return 75.0 * (1 + mods.get("wave_len", 0) * 0.5)
+        return 85.0 * (1 + mods.get("wave_len", 0) * 0.5)
     base = min(62.0, 28 + 3 * hora)
     return base * (1 + mods.get("wave_len", 0))
 

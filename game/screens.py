@@ -153,6 +153,11 @@ class LoreScene(BaseScene):
         g = self.gui
         g.begin()
         self.t += dt
+        if self.app.input.just_pressed(pygame.K_ESCAPE):
+            self.app.settings["seen_intro"] = True
+            self.app.settings.flush()
+            self.app.set_scene("charsel" if self.first else "menu")
+            return
         if self.app.input.just_pressed(pygame.K_RETURN) or self.app.input.just_pressed(pygame.K_SPACE):
             self._next()
         if g.click:

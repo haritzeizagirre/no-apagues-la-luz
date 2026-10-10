@@ -51,6 +51,8 @@ def version_file() -> str:
 
 def main() -> int:
     os.chdir(ROOT)
+    # 0) matar instancias en marcha (pueden bloquear dist/NoApaguesLaLuz.exe)
+    subprocess.run(["taskkill", "/F", "/IM", "NoApaguesLaLuz.exe"], capture_output=True)
     # 1) icono
     subprocess.run([PY, os.path.join("tools", "make_icon.py")], check=True)
     vf = version_file()

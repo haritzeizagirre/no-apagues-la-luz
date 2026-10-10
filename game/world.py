@@ -260,6 +260,18 @@ class RunWorld:
         if not boss_hora and self.wave_t >= self.wave_total:
             self._end_wave()
             return
+        if boss_hora and self.boss is not None and self.wave_t >= self.wave_total:
+            # el jefe se retira si no lo has matado a tiempo (estilo Brotato)
+            b = self.boss
+            self.particles.add(b.x, b.y, K.C["morado"], n=24, speed=(40, 160), life=(0.3, 0.8), glow=True)
+            if b in self.enemies:
+                self.enemies.remove(b)
+            b.dead = True
+            self.boss = None
+            self.banner("El jefe se retira a su despacho… por ahora.")
+            self.app.audio.play("boss_die", 0.5)
+            self._end_wave()
+            return
         if boss_hora and self.boss is not None and self.wave_t > 75 and not self.boss.hit_seen.get("enraged"):
             self.boss.hit_seen["enraged"] = 1
             self.boss.spd *= 1.4
@@ -1265,6 +1277,20 @@ class RunWorld:
             b.dash_t -= dt
             b.x = clamp(b.x + b.dirx * b.dash_v * dt, 30, ARENA_W - 30)
             b.y = clamp(b.y + b.diry * b.dash_v * dt, 30, ARENA_H - 30)
+        # wind-up de shockwave (telegrafiado, evitable)
+        if b.state_i == 77:
+            b.teleg_t -= dt
+            self.particles.add(b.x, b.y, K.C["ambar"], n=2, speed=(30, 90), life=(0.15, 0.3), glow=True)
+            if b.teleg_t <= 0:
+                b.state_i = 0
+                r = float(b.hit_seen.get("shock_arg", 150))
+                p = self.player
+                self.particles.ring(b.x, b.y, K.C["ambar"], 8, r, 0.5, 3)
+                self.app.audio.play("explosion_big", 0.8)
+                self.cam.add_shake(3)
+                if math.hypot(p.x - b.x, p.y - b.y) < r + p.r:
+                    self.player_hurt(b.dmg * 0.8)
+            return
         b.pat_cd -= dt
         if b.pat_cd > 0:
             return
@@ -1274,12 +1300,10 @@ class RunWorld:
         b.pat_i += 1
         b.pat_cd = cd
         if act == "shockwave":
-            r = float(arg)
-            self.particles.ring(b.x, b.y, K.C["ambar"], 8, r, 0.5, 3)
-            self.app.audio.play("explosion_big", 0.8)
-            self.cam.add_shake(3)
-            if math.hypot(p.x - b.x, p.y - b.y) < r + p.r:
-                self.player_hurt(b.dmg * 0.8)
+            b.state_i = 77
+            b.teleg_t = 0.6
+            b.hit_seen["shock_arg"] = float(arg)
+            return
         elif act == "summon":
             eid, n = arg
             for _ in range(int(n)):
@@ -1598,8 +1622,11 @@ class RunWorld:
             surf.blit(sp.elite, (int(x - sp.w // 2), int(y - sp.h + 1 + bob)))
         else:
             sp.draw(surf, x, y + bob, flash=flash)
-        if e.boss and e.pat_cd < 0.35:
-            pass
+        if e.boss and e.state_i == 77:
+            # aviso de golpe sísmico
+            prog = 1.0 - max(0.0, e.teleg_t / 0.6)
+            rr = int(e.defn and 150 * (0.4 + 0.6 * prog))
+            pygame.draw.circle(surf, (255, 170, 90), (int(x), int(y)), rr, 1)
 
     def _draw_player(self, surf, p: Player):
         sp = S.get(self.char["sprite"])

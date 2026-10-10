@@ -15,6 +15,14 @@ import sys
 import traceback
 
 
+def _print(*a, **k):
+    """print seguro: en el .exe empaquetado sin consola stdout puede no existir."""
+    try:
+        print(*a, **k)
+    except Exception:
+        pass
+
+
 def _headless_args(argv):
     return any(a in argv for a in ("--selftest", "--simulate", "--screenshot", "--headless"))
 
@@ -144,8 +152,8 @@ def run_selftest(argv=None) -> int:
             json.dump(report, f, ensure_ascii=False, indent=1)
     except Exception:
         pass
-    print(json.dumps(report, ensure_ascii=False, indent=1))
-    print(f"[selftest] informe: {out}")
+    _print(json.dumps(report, ensure_ascii=False, indent=1))
+    _print(f"[selftest] informe: {out}")
     return 0 if report["ok"] else 1
 
 
@@ -171,7 +179,7 @@ def run_simulate(argv) -> int:
     seed = int(arg("--seed", str(random.randint(1, 99999))))
     mins = float(arg("--minutes", "25"))
     res = fast_run(app, char, guardia, muts, seed=seed, max_time=mins * 60)
-    print(json.dumps(res, ensure_ascii=False, indent=1))
+    _print(json.dumps(res, ensure_ascii=False, indent=1))
     return 0
 
 
@@ -194,13 +202,25 @@ def run_screenshot(argv) -> int:
         import pygame
         pygame.image.save(app.screen, str(p))
         shots.append(str(p))
-        print(f"[screenshot] {p}")
+        _print(f"[screenshot] {p}")
 
     from game.simharness import bot_step, FakeAppInput
     app.set_scene("menu")
     frame_shot("01_menu")
+    app.set_scene("lore")
+    frame_shot("02_lore")
     app.set_scene("charsel")
-    frame_shot("02_charsel")
+    frame_shot("03_charsel")
+    app.set_scene("cajon")
+    frame_shot("04_cajon")
+    app.set_scene("sellos")
+    frame_shot("05_sellos")
+    app.set_scene("archivo")
+    frame_shot("06_archivo")
+    app.set_scene("ajustes")
+    frame_shot("07_ajustes")
+    app.set_scene("creditos")
+    frame_shot("08_creditos")
     app.set_scene("run", char_id="lia", guardia=1, mut_ids=[], seed=3)
     world = app.scene.world
     inp = FakeAppInput()
@@ -214,35 +234,35 @@ def run_screenshot(argv) -> int:
             world.pending_levels = 0
             world.phase = "active"
     world.cam.follow(world.player.x, world.player.y, snap=True)
-    frame_shot("03_combate", 2)
+    frame_shot("10_combate", 2)
     # subida de nivel forzada
     world.pending_levels = 1
     world.phase = "levelup"
     world.events.clear()
-    frame_shot("04_levelup")
+    app.scene.cards = world.roll_levelup_cards()
+    frame_shot("11_levelup")
     # tienda
     world.pending_levels = 0
     world._end_wave()
-    frame_shot("05_tienda")
+    frame_shot("12_tienda")
     # jefe
     world.leave_shop()
     world.wave = 5
     world.next_wave()
-    frame_shot("06_boss_intro")
+    frame_shot("13_boss_intro")
     for _ in range(int(2.6 * 60)):
         world.update(1 / 60)
-    frame_shot("07_boss")
+    frame_shot("14_boss")
     # pausa
     app.scene.paused = True
-    frame_shot("08_pausa")
+    frame_shot("15_pausa")
     app.scene.paused = False
     # victoria
     world._finish(victory=True)
-    frame_shot("09_victoria")
-    # cajón
+    frame_shot("16_victoria")
     app.set_scene("cajon")
-    frame_shot("10_cajon")
-    print(json.dumps({"shots": shots}, ensure_ascii=False))
+    frame_shot("17_cajon")
+    _print(json.dumps({"shots": shots}, ensure_ascii=False))
     return 0
 
 

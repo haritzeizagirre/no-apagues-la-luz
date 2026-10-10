@@ -129,16 +129,6 @@ class RunScene(Scene):
                 want = "combat3"
             self.app.audio.play_music(want)
 
-        # overlays interactivos
-        if self.paused:
-            self._ui_pause()
-        elif self.cards is not None:
-            self._ui_levelup()
-        elif w.phase == "shop":
-            self._ui_shop()
-        elif w.phase in ("dead", "victory"):
-            self._ui_end()
-
     def push_toast(self, text, kind="info"):
         self.toasts.insert(0, {"text": text, "kind": kind, "t": 4.5})
         del self.toasts[7:]
@@ -215,7 +205,9 @@ class RunScene(Scene):
                 full = CW.BY_ID[off["id"]] if off["kind"] == "weapon" else CI.BY_ID[off["id"]]
                 lines = self.app.fonts.wrap(full.get("desc", ""), "vt", 11, 200)
                 if off["kind"] == "weapon":
-                    lines = [f"Nivel 1 · Fusión: {CW.BY_ID[off['id']]['kind']}"] + lines
+                    lines = [f"Arma tier {CW.BY_ID[off['id']]['tier']} · comprada sube de nivel al fusionar"] + lines
+                else:
+                    lines = [f"Ítem tier {CI.BY_ID[off['id']]['tier']}"] + lines
                 g.tooltip(r, full["name"], lines)
             if clicked and not off["sold"]:
                 if not w.shop_buy(i):
@@ -425,6 +417,16 @@ class RunScene(Scene):
             y += 15
         if self.intro_t > 0:
             self._draw_intro(surf)
+        # superposiciones interactivas (se dibujan AQUÍ, después del mundo)
+        w = self.world
+        if self.paused:
+            self._ui_pause()
+        elif self.cards is not None:
+            self._ui_levelup()
+        elif w.phase == "shop":
+            self._ui_shop()
+        elif w.phase in ("dead", "victory"):
+            self._ui_end()
         self.gui.end(surf)
 
     def _draw_hud(self, surf):

@@ -21,6 +21,16 @@ class FakeAppInput:
         self.any_key = False
         self.text = ""
 
+    def begin(self):
+        self.just = set()
+        self.mouse_clicked = False
+        self.mouse_released = False
+        self.any_key = False
+        self.text = ""
+
+    def handle(self, ev):
+        pass
+
     def held(self, key):
         return self.keys.get(key, False)
 
