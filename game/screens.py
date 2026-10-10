@@ -106,10 +106,7 @@ class MenuScene(BaseScene):
         self.app.audio.play_music("menu")
 
     def update(self, dt):
-        g = self.gui
-        g.begin()
-        if self.back_button(self.app.screen):
-            self.app.quit()
+        self.gui.begin()
 
     def draw(self, surf):
         draw_bg(self.app, surf, self.app.time)
@@ -118,23 +115,20 @@ class MenuScene(BaseScene):
                shadow=True, bold_shadow=True)
         f.text(surf, K.SUBTITLE, (K.W // 2, 90), size=13, color=K.C["crema"], anchor="center", shadow=True)
         g = self.gui
-        x = 40
-        y = 130
-        items = [("JUGAR ▶", "jugar", 130), ("HISTORIA", "lore", 96), ("EL CAJÓN", "cajon", 96),
-                 ("SELLOS", "sellos", 78), ("ARCHIVO", "archivo", 78), ("AJUSTES", "ajustes", 78),
-                 ("CRÉDITOS", "creditos", 78)]
-        bw, bh = 150, 26
-        for i, (label, key, bw_) in enumerate(items):
-            r = pygame.Rect(36 + (i % 2) * (bw + 8), y + (i // 2) * (bh + 6), bw if i > 0 else 308, bh)
-            style = "key"
-            if g.button(r, label, f"menu_{key}", style=style, size=12 if i == 0 else 11):
-                if key == "jugar":
-                    self.app.set_scene("charsel")
-                elif key == "lore":
-                    self.app.set_scene("lore")
-                else:
-                    self.app.set_scene(key)
+        # botón principal, fila propia a lo ancho
+        if g.button(pygame.Rect(36, 126, 308, 30), "JUGAR ▶", "menu_jugar", size=13):
+            self.app.set_scene("charsel")
+        # rejilla 2×3
+        pairs = [("HISTORIA", "lore"), ("EL CAJÓN", "cajon"),
+                 ("SELLOS", "sellos"), ("ARCHIVO", "archivo"),
+                 ("AJUSTES", "ajustes"), ("CRÉDITOS", "creditos")]
+        for i, (label, key) in enumerate(pairs):
+            r = pygame.Rect(36 + (i % 2) * 158, 162 + (i // 2) * 32, 150, 26)
+            if g.button(r, label, f"menu_{key}", size=11):
+                self.app.set_scene(key)
         self.chispas_counter(surf)
+        if g.button(pygame.Rect(K.W - 74, K.H - 34, 66, 22), "✕ SALIR", "menu_quit", size=10):
+            self.app.quit()
         # pie
         f.text(surf, ST.TAGLINE, (K.W // 2, K.H - 44), size=12, color=K.C["papel2"], anchor="center", shadow=True)
         f.text(surf, f"v{K.VERSION} · hecha con pygame · todo el arte se dibuja por código", (K.W // 2, K.H - 22),
@@ -203,8 +197,26 @@ class CharSelectScene(BaseScene):
         self.guardia = min(self.guardia, min(K.MAX_GUARDIA, saw + 1))
 
     def update(self, dt):
+        self.gui.begin()
+        if self.app.input.just_pressed(pygame.K_ESCAPE):
+            self.app.set_scene("menu")
+            return
+        # flechas: cambia entre cacharros desbloqueados
+        paso = 0
+        if self.app.input.just_pressed(pygame.K_RIGHT):
+            paso = 1
+        elif self.app.input.just_pressed(pygame.K_LEFT):
+            paso = -1
+        if paso:
+            ids = [c["id"] for c in CC.CHARS if self.app.save.has(f"char:{c['id']}")]
+            if ids:
+                i = ids.index(self.sel) if self.sel in ids else 0
+                self.sel = ids[(i + paso) % len(ids)]
+                self._refresh_guardia()
+                self.app.audio.play("ui_hover")
+
+    def _contenido(self, surf):
         g = self.gui
-        g.begin()
         save = self.app.save
         # rejilla de cacharros
         for i, c in enumerate(CC.CHARS):
@@ -309,6 +321,7 @@ class CharSelectScene(BaseScene):
     def draw(self, surf):
         draw_bg(self.app, surf, self.app.time)
         self.title(surf, "ELIGE TU CACHARRO")
+        self._contenido(surf)
 
 
 # ---------------------------------------------------------------- El Cajón
@@ -318,10 +331,13 @@ class CajonScene(BaseScene):
         self.msg_t = 0.0
 
     def update(self, dt):
-        g = self.gui
-        surf = self.app.screen
-        g.begin()
+        self.gui.begin()
         self.msg_t = max(0.0, self.msg_t - dt)
+        if self.app.input.just_pressed(pygame.K_ESCAPE):
+            self.app.set_scene("menu")
+
+    def _contenido(self, surf):
+        g = self.gui
         save = self.app.save
         for i, up in enumerate(MU.META_UPGRADES):
             r = pygame.Rect(40 + (i % 2) * 290, 60 + (i // 2) * 28, 280, 24)
@@ -367,6 +383,7 @@ class CajonScene(BaseScene):
         draw_bg(self.app, surf, self.app.time)
         self.title(surf, "EL CAJÓN DE LOS RECUERDOS", ST.CAJON_BLURB)
         self.chispas_counter(surf)
+        self._contenido(surf)
 
 
 # ---------------------------------------------------------------- Sellos
@@ -388,15 +405,18 @@ class SellosScene(BaseScene):
         return None, 0
 
     def update(self, dt):
-        g = self.gui
-        surf = self.app.screen
-        g.begin()
-        save = self.app.save
+        self.gui.begin()
+        if self.app.input.just_pressed(pygame.K_ESCAPE):
+            self.app.set_scene("menu")
         rows = len(ACH.ACHIEVEMENTS) // 2 + 1
         if self.app.input.just_pressed(pygame.K_DOWN):
             self.scroll = min(self.scroll + 1, max(0, rows - 12))
         if self.app.input.just_pressed(pygame.K_UP):
             self.scroll = max(0, self.scroll - 1)
+
+    def _contenido(self, surf):
+        g = self.gui
+        save = self.app.save
         for i, a in enumerate(ACH.ACHIEVEMENTS):
             col_i = i % 2
             row_i = i // 2 - self.scroll
@@ -431,6 +451,7 @@ class SellosScene(BaseScene):
     def draw(self, surf):
         draw_bg(self.app, surf, self.app.time)
         self.title(surf, "SELLOS", ST.SELLOS_BLURB)
+        self._contenido(surf)
 
 
 # ---------------------------------------------------------------- Archivo
@@ -439,10 +460,9 @@ class ArchivoScene(BaseScene):
         self.scroll = 0
 
     def update(self, dt):
-        g = self.gui
-        surf = self.app.screen
-        g.begin()
-        save = self.app.save
+        self.gui.begin()
+        if self.app.input.just_pressed(pygame.K_ESCAPE):
+            self.app.set_scene("menu")
         entries = list(CE.ENEMIES) + list(CE.BOSSES)
         cols = 3
         rows = len(entries) // cols + 1
@@ -450,6 +470,12 @@ class ArchivoScene(BaseScene):
             self.scroll = min(self.scroll + 1, max(0, rows - 8))
         if self.app.input.just_pressed(pygame.K_UP):
             self.scroll = max(0, self.scroll - 1)
+
+    def _contenido(self, surf):
+        g = self.gui
+        save = self.app.save
+        entries = list(CE.ENEMIES) + list(CE.BOSSES)
+        cols = 3
         seen_n = 0
         for i, e in enumerate(entries):
             col_i = i % cols
@@ -486,14 +512,30 @@ class ArchivoScene(BaseScene):
     def draw(self, surf):
         draw_bg(self.app, surf, self.app.time)
         self.title(surf, "ARCHIVO", ST.ARCHIVO_BLURB)
+        self._contenido(surf)
 
 
 # ---------------------------------------------------------------- Ajustes
 class AjustesScene(BaseScene):
+    def enter(self, **kw):
+        self._pend_sc = None
+        self._pend_fs = False
+
     def update(self, dt):
+        self.gui.begin()
+        if self._pend_sc is not None:
+            self.app.settings["scale"] = self._pend_sc
+            self._pend_sc = None
+            self.app.settings.flush()
+            self.app._create_window()
+        elif self._pend_fs:
+            self._pend_fs = False
+            self.app.toggle_fullscreen()
+        elif self.app.input.just_pressed(pygame.K_ESCAPE):
+            self.app.set_scene("menu")
+
+    def _contenido(self, surf):
         g = self.gui
-        surf = self.app.screen
-        g.begin()
         s = self.app.settings
         changed = False
         y = 70
@@ -512,10 +554,9 @@ class AjustesScene(BaseScene):
         for k, sc in enumerate((1, 2, 3)):
             r = pygame.Rect(214 + k * 40, y + 248, 34, 20)
             if g.button(r, f"{sc}x", f"sc{k}", size=10, en=(s["scale"] != sc)):
-                s["scale"] = sc
-                self.app._create_window()
+                self._pend_sc = sc
         if g.button(pygame.Rect(350, y + 248, 130, 20), "PANTALLA COMPLETA", "fs", size=9):
-            self.app.toggle_fullscreen()
+            self._pend_fs = True
         if changed:
             self.app.audio.refresh_volumes()
             s.flush()
@@ -526,14 +567,14 @@ class AjustesScene(BaseScene):
     def draw(self, surf):
         draw_bg(self.app, surf, self.app.time)
         self.title(surf, "AJUSTES")
+        self._contenido(surf)
 
 
 # ---------------------------------------------------------------- Créditos
 class CreditosScene(BaseScene):
     def update(self, dt):
-        g = self.gui
-        g.begin()
-        if self.back_button(self.app.screen):
+        self.gui.begin()
+        if self.app.input.just_pressed(pygame.K_ESCAPE):
             self.app.set_scene("menu")
 
     def draw(self, surf):
@@ -544,4 +585,6 @@ class CreditosScene(BaseScene):
             self.app.fonts.text(surf, line, (K.W // 2, y), size=12 if line else 8, color=K.C["crema"],
                                 anchor="center", shadow=True)
             y += 18
+        if self.back_button(surf):
+            self.app.set_scene("menu")
         self.gui.end(surf)

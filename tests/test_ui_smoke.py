@@ -83,6 +83,42 @@ def test_all_scenes_leave_without_crash(app):
     app.frame()
 
 
+# y0 = borde superior de la zona de contenido (debajo de título/subtítulo); umbral mínimo de tinta.
+TINTAS = {
+    "menu": (104, 12000),
+    "lore": (104, 30000),
+    "charsel": (58, 20000),
+    "cajon": (58, 8000),
+    "sellos": (58, 8000),
+    "archivo": (58, 5000),
+    "ajustes": (58, 10000),
+    "creditos": (58, 1800),
+}
+
+
+def test_scene_content_visible(app):
+    """Regresión 'pantalla vacía': cada pantalla debe dibujar contenido SOBRE el fondo.
+
+    Compara el frame real con una referencia que solo contiene el fondo (mismo t):
+    si el contenido se dibujara en update(), el frame lo borraría y la tinta sería ~0.
+    """
+    import numpy as np
+
+    from game import const as K
+    from game import screens as SC
+
+    for name, (y0, min_ink) in TINTAS.items():
+        app.set_scene(name)
+        app.frame()
+        a = np.frombuffer(pygame.image.tobytes(app.screen, "RGB"), dtype=np.uint8).reshape(K.H, K.W, 3).astype(np.int16)
+        ref = pygame.Surface((K.W, K.H))
+        SC.draw_bg(app, ref, app.time)
+        b = np.frombuffer(pygame.image.tobytes(ref, "RGB"), dtype=np.uint8).reshape(K.H, K.W, 3).astype(np.int16)
+        ink = int((np.abs(a - b).max(axis=2) > 24)[y0:346, 4:636].sum())
+        assert ink > min_ink, f"{name}: solo {ink} px de contenido visibles (¿dibujo en update() borrado por el frame?)"
+    app.set_scene("menu")
+
+
 class _FakeClock:
     def tick(self, ms=0):
         return 16
