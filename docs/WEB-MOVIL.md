@@ -55,10 +55,13 @@ partida en marcha → movimiento con teclado a tiempo real; clics y táctil func
 
 ## Pendiente (siguiente paso del port)
 
-- **Atenuación del canvas**: revisar el formato de superficie/canvas del template
-  (cosmético, pero conviene arreglarlo).
 - **Guardado en web**: el FS del navegador no persiste; usar IDBFS/localStorage.
 - **Controles táctiles de juego** (joystick virtual): en móvil los menús ya funcionan
   con toques (touch→mouse); falta el movimiento en partida.
 - **PWA/APK**: empaquetar `build/web` (service worker + manifest) y decidir TWA/WebView.
 - **Rendimiento en móvil**: medir fps reales en un móvil; ajustar si hiciera falta.
+
+(Resuelto en esta iteración: loader propio en la plantilla `tools/web_template.tmpl`;
+canvas 16:9 estable con `napal_fit_canvas`; RECENTRAR/PANTALLA COMPLETA por JS del
+navegador; favicon `icon_napal.png`; la atenuación de color del canvas desapareció al
+pasar a backing 1280×720.)
