@@ -11,7 +11,43 @@ import pygame
 from . import const as K
 from . import sprites as S
 
-V = pygame.math.Vector2
+try:
+    V = pygame.math.Vector2
+except AttributeError:   # builds WASM (pygbag) sin pygame.math: Vector2 mínimo
+    class V:  # noqa: N801
+        __slots__ = ("x", "y")
+
+        def __init__(self, x=0.0, y=0.0):
+            self.x, self.y = float(x), float(y)
+
+        def copy(self):
+            return V(self.x, self.y)
+
+        def __add__(self, o):
+            return V(self.x + o.x, self.y + o.y)
+
+        def __sub__(self, o):
+            return V(self.x - o.x, self.y - o.y)
+
+        def __mul__(self, k):
+            return V(self.x * k, self.y * k)
+
+        __rmul__ = __mul__
+
+        def __iadd__(self, o):
+            self.x += o.x
+            self.y += o.y
+            return self
+
+        def length_squared(self):
+            return self.x * self.x + self.y * self.y
+
+        def normalize(self):
+            n = math.sqrt(self.x * self.x + self.y * self.y)
+            if n > 0:
+                self.x /= n
+                self.y /= n
+            return self
 
 ARENA_W, ARENA_H = K.ARENA_W, K.ARENA_H
 
@@ -257,6 +293,9 @@ class Fonts:
             "pix": K.FONTS / "PixelifySans.ttf",
         }
         self.ok = all(p.exists() for p in self.files.values())
+        self._pix_ok = self.files["pix"].exists()   # se comprueba UNA vez (no por texto)
+        self._text_cache: dict = {}                  # caché de superficies de texto ya renderizadas
+        self._size_cache: dict = {}                  # caché de medidas f.size()
 
     # glifos que las fuentes pixel no traen: se sustituyen al medir/renderizar (jamás tofu).
     GLYPH_FALLBACK = {
@@ -281,7 +320,7 @@ class Fonts:
     def font(self, kind="vt", size=14) -> pygame.font.Font:
         if kind in ("vt", "silk") and size <= 12:
             kind, size = self.SMALL_UI.get(size, (kind, size))
-        if kind == "pix" and not self.files["pix"].exists():
+        if kind == "pix" and not self._pix_ok:
             kind = "silk"   # por si falta el fichero de la fuente nueva
         key = (kind, size)
         if key not in self.cache:
@@ -294,47 +333,83 @@ class Fonts:
 
     def text(self, target, text, pos, kind="vt", size=14, color=K.C["crema"],
              anchor="topleft", shadow=False, alpha=255, shadow_col=(8, 9, 15), bold_shadow=False):
+        """Texto con caché de superficies (clave: fuente/tamaño/color/texto/sombra).
+
+        Los textos de HUD se repiten muchísimo entre fotogramas; renderizar cada vez
+        es carísimo en WASM (pygame.font.render es de lo más lento). Con sombra se
+        precompone una única superficie (mismos píxeles que antes).
+        """
         text = self.san(text)
-        f = self.font(kind, size)
-        img = f.render(str(text), False, color)
-        if alpha < 255:
-            img = img.copy()
-            img.set_alpha(alpha)
+        key = (kind, size, text, color, alpha, shadow, shadow_col, bold_shadow)
+        ent = self._text_cache.get(key)
+        if ent is None:
+            f = self.font(kind, size)
+            t = f.render(str(text), False, color)
+            w, h = t.get_size()
+            if shadow:
+                img = pygame.Surface((w + 2, h + 2), pygame.SRCALPHA)
+                offs = [(1, 1)]
+                if bold_shadow:
+                    offs += [(-1, 1), (1, -1)]
+                for (dx, dy) in offs:
+                    img.blit(f.render(str(text), False, shadow_col), (1 + dx, 1 + dy))
+                img.blit(t, (1, 1))
+                if alpha < 255:
+                    img.set_alpha(alpha)
+            elif alpha < 255:
+                img = t.copy()
+                img.set_alpha(alpha)
+            else:
+                img = t
+            if len(self._text_cache) > 900:   # límite simple (los textos de daño varían)
+                self._text_cache.clear()
+            ent = (img, w, h)
+            self._text_cache[key] = ent
+        img, w, h = ent
         x, y = pos
         if anchor == "center":
-            r = img.get_rect(center=(int(x), int(y)))
+            r = pygame.Rect(0, 0, w, h)
+            r.center = (int(x), int(y))
         elif anchor == "topright":
-            r = img.get_rect(topright=(int(x), int(y)))
+            r = pygame.Rect(0, 0, w, h)
+            r.topright = (int(x), int(y))
         elif anchor == "midtop":
-            r = img.get_rect(midtop=(int(x), int(y)))
+            r = pygame.Rect(0, 0, w, h)
+            r.midtop = (int(x), int(y))
         elif anchor == "midbottom":
-            r = img.get_rect(midbottom=(int(x), int(y)))
+            r = pygame.Rect(0, 0, w, h)
+            r.midbottom = (int(x), int(y))
         elif anchor == "bottomright":
-            r = img.get_rect(bottomright=(int(x), int(y)))
+            r = pygame.Rect(0, 0, w, h)
+            r.bottomright = (int(x), int(y))
         else:
-            r = img.get_rect(topleft=(int(x), int(y)))
+            r = pygame.Rect(int(x), int(y), w, h)
         if shadow:
-            sh = f.render(str(text), False, shadow_col)
-            if alpha < 255:
-                sh = sh.copy()
-                sh.set_alpha(alpha)
-            target.blit(sh, (r.x + 1, r.y + 1))
-            if bold_shadow:
-                target.blit(sh, (r.x - 1, r.y + 1))
-                target.blit(sh, (r.x + 1, r.y - 1))
-        target.blit(img, r)
+            target.blit(img, (r.x - 1, r.y - 1))
+        else:
+            target.blit(img, r)
         return r
 
     def fit(self, text, kind, size, width):
         """Recorta el texto añadiendo … si excede el ancho disponible (evita desbordes)."""
         text = self.san(str(text))
-        f = self.font(kind, size)
-        if f.size(text)[0] <= width:
+        if self._size(kind, size, text)[0] <= width:
             return text
         cut = text
-        while cut and f.size(cut + "…")[0] > width:
+        while cut and self._size(kind, size, cut + "…")[0] > width:
             cut = cut[:-1]
         return (cut + "…") if cut else "…"
+
+    def _size(self, kind, size, text):
+        """Tamaño de un texto con caché (f.size() es sorprendentemente caro)."""
+        key = (kind, size, text)
+        ent = self._size_cache.get(key)
+        if ent is None:
+            ent = self.font(kind, size).size(text)
+            if len(self._size_cache) > 2400:
+                self._size_cache.clear()
+            self._size_cache[key] = ent
+        return ent
 
     def wrap(self, text, kind, size, width):
         text = self.san(text)
@@ -382,7 +457,8 @@ class App:
         self.save = save
         self.audio = audio
         self.headless = headless
-        pygame.init()
+        if hasattr(pygame, "init"):   # en WASM (pygbag) el runtime ya ha inicializado SDL
+            pygame.init()
         pygame.display.set_caption(f"{K.TITLE} — {K.SUBTITLE}")
         self.fonts = Fonts()
         self.input = Input()
@@ -467,8 +543,10 @@ class App:
         if self.headless:
             return
         self._win_created = False          # permite re-centrar
-        pygame.display.quit()
-        pygame.display.init()
+        if hasattr(pygame.display, "quit"):
+            pygame.display.quit()
+        if hasattr(pygame.display, "init"):
+            pygame.display.init()
         self._create_window()
 
     def toggle_fullscreen(self):

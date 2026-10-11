@@ -1,0 +1,66 @@
+"""Construye la version web (pygbag) en build/web_src y empaqueta con pygbag.
+
+Uso:
+    ./.venv/Scripts/python.exe tools/build_web.py            # monta y sirve en :8000 (dev)
+    ./.venv/Scripts/python.exe tools/build_web.py --build    # solo empaqueta
+
+Reglas aprendidas (detalle en docs/WEB-MOVIL.md):
+- pygbag SIEMPRE ejecuta build/web_src/main.py -> debe ser la entrada ASYNC (main_web.py).
+  La entrada de escritorio se conserva como desktop_entry.py (main_web importa build_app de ahi).
+- Todo el audio debe ser OGG (pygbag rechaza WAV/MP3).
+- El bucle del juego debe usar `await asyncio.sleep(0)`: los sleeps con temporizador
+  NO resuelven en el modo "main thread" de pygbag.
+- El servidor de desarrollo de pygbag debe correr en el puerto 8000 (el runtime pide
+  ahi el wheel de pygame-ce).
+"""
+from __future__ import annotations
+
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+WEB = ROOT / "build" / "web_src"
+
+
+def stage() -> None:
+    WEB.mkdir(parents=True, exist_ok=True)
+    # entrada de escritorio (para importar build_app) y entrada web como main.py
+    shutil.copy2(ROOT / "main.py", WEB / "desktop_entry.py")
+    shutil.copy2(ROOT / "main_web.py", WEB / "main.py")
+    # codigo del juego
+    dst = WEB / "game"
+    if dst.exists():
+        shutil.rmtree(dst)
+    shutil.copytree(ROOT / "game", dst, ignore=shutil.ignore_patterns("__pycache__"))
+    # assets (una vez; las siguientes builds reutilizan)
+    assets_dst = WEB / "assets"
+    if not assets_dst.exists():
+        shutil.copytree(ROOT / "assets", assets_dst,
+                        ignore=shutil.ignore_patterns("raw_downloads"))
+    # convertir WAV/MP3 -> OGG si quedara alguno (pygbag los rechaza)
+    for w in list(assets_dst.rglob("*.wav")) + list(assets_dst.rglob("*.mp3")):
+        ogg = w.with_suffix(".ogg")
+        print(f"[web] convirtiendo {w.name} -> ogg")
+        subprocess.run(["ffmpeg", "-y", "-i", str(w), "-ac", "1", "-ar", "22050",
+                        "-c:a", "libvorbis", "-q:a", "4", str(ogg)],
+                       check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        if ogg.exists():
+            w.unlink()
+    print(f"[web] montaje listo en {WEB}")
+
+
+def main() -> int:
+    args = sys.argv[1:]
+    stage()
+    cmd = [sys.executable, "-m", "pygbag", "--ume_block", "0"]
+    if "--build" in args:
+        cmd.append("--build")
+    cmd.append(".")
+    print("[web] pygbag:", " ".join(cmd[2:]))
+    return subprocess.call(cmd, cwd=WEB)
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

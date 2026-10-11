@@ -45,6 +45,10 @@ class Audio:
     def __init__(self, settings):
         self.settings = settings
         self.enabled = False
+        try:
+            import pygame.mixer  # noqa: F401  (en WASM el submódulo se carga aquí)
+        except Exception:
+            pass
         self.sounds: dict[str, pygame.mixer.Sound] = {}
         self.missing: list[str] = []
         self._map = {"sfx": {}, "music": {}}

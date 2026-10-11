@@ -1,6 +1,7 @@
 """Pantallas de menú: portada, lore, selección, El Cajón, Sellos, Archivo, Ajustes."""
 from __future__ import annotations
 
+import math
 import random
 
 import pygame
@@ -83,10 +84,10 @@ def draw_bg(app, surf, t):
     for i in range(26):
         x = (rnd.randrange(K.W) + t * (6 + i % 5)) % K.W
         y = (rnd.randrange(220, K.H) + t * (2 + i % 3)) % K.H
-        a = 40 + int(30 * (0.5 + 0.5 * pygame.math.Vector2(1, 0).rotate(0).x))
+        a = 70
         pygame.draw.rect(surf, (90, 96, 120), (int(x), int(y), 1, 1))
     # parpadeo de lámpara
-    flick = 0.85 + 0.15 * abs(pygame.math.Vector2(1, 0).rotate(t * 90).x)
+    flick = 0.85 + 0.15 * abs(math.cos(math.radians(t * 90)))
     if random.Random(int(t * 3)).random() < 0.06:
         flick *= 0.55
     ve = pygame.Surface((K.W, K.H), pygame.SRCALPHA)

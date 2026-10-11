@@ -922,37 +922,56 @@ class RunWorld:
         self.enemies = [e for e in self.enemies if not e.dead]
 
     def _separate_enemies(self):
+        """Separación a 30 Hz, sin listas intermedias y solo cerca del jugador.
+
+        Era el punto más caro del fotograma (4+ ms con 160 enemigos). Lejos del
+        jugador la separación no se aprecia (y llegarán separados al acercarse).
+        """
+        self._sep_tick = not getattr(self, "_sep_tick", False)
+        if self._sep_tick:
+            return
+        px, py = self.player.x, self.player.y
+        lim2 = 460.0 * 460.0
         cell = 22
         grid: dict[tuple, list] = {}
+        items = []
         for e in self.enemies:
             if e.dead or e.boss:
                 continue
-            key = (int(e.x) // cell, int(e.y) // cell)
-            grid.setdefault(key, []).append(e)
-        for e in self.enemies:
-            if e.dead or e.boss:
+            kx, ky = int(e.x) // cell, int(e.y) // cell
+            items.append((e, kx, ky, e.r * 0.75))
+            grid.setdefault((kx, ky), []).append(e)
+        gget = grid.get
+        for (e, kx, ky, er75) in items:
+            dxp = e.x - px
+            dyp = e.y - py
+            if dxp * dxp + dyp * dyp > lim2:
                 continue
-            key = (int(e.x) // cell, int(e.y) // cell)
-            near = []
+            c = 0
             for dx in (-1, 0, 1):
                 for dy in (-1, 0, 1):
-                    near.extend(grid.get((key[0] + dx, key[1] + dy), ()))
-            c = 0
-            for o in near:
-                if o is e or o.dead:
-                    continue
-                ddx, ddy = e.x - o.x, e.y - o.y
-                d2 = ddx * ddx + ddy * ddy
-                mr = (e.r + o.r) * 0.75
-                if 0 < d2 < mr * mr:
-                    d = math.sqrt(d2)
-                    push = (mr - d) * 0.4
-                    ox, oy = ddx / d, ddy / d
-                    e.x += ox * push
-                    e.y += oy * push
-                    c += 1
+                    bucket = gget((kx + dx, ky + dy))
+                    if not bucket:
+                        continue
+                    for o in bucket:
+                        if o is e or o.dead:
+                            continue
+                        ddx = e.x - o.x
+                        ddy = e.y - o.y
+                        d2 = ddx * ddx + ddy * ddy
+                        mr = er75 + o.r * 0.75
+                        if 0 < d2 < mr * mr:
+                            d = math.sqrt(d2)
+                            inv = (mr - d) * 0.8 / d   # x2: la mitad de frecuencia
+                            e.x += ddx * inv
+                            e.y += ddy * inv
+                            c += 1
+                            if c > 6:
+                                break
                     if c > 6:
                         break
+                if c > 6:
+                    break
 
     def _tick_enemy_status(self, e, dt):
         for k in ("burn", "poison", "bleed"):
@@ -1681,15 +1700,21 @@ class RunWorld:
             alpha = int(alpha * 0.35)
         if alpha <= 4:
             return
-        if getattr(self, "_dark_surf", None) is None:
-            self._dark_surf = pygame.Surface((K.W, K.H), pygame.SRCALPHA)
-        ds = self._dark_surf
-        ds.fill((6, 8, 18, alpha))
         r = int(self.light_radius())
-        if r > 4:
-            mask = S.radial_mask(r)
-            x, y = self.cam.to_screen(self.player.x, self.player.y)
-            ds.blit(mask, (int(x - r), int(y - r - 4)), special_flags=pygame.BLEND_RGBA_SUB)
+        x, y = self.cam.to_screen(self.player.x, self.player.y)
+        # la superficie solo se reconstruye cuando cambia de verdad (alfa/radio/posición)
+        key = (alpha // 3, r // 6, int(x) // 5, int(y) // 5)
+        ds = getattr(self, "_dark_surf", None)
+        if ds is None:
+            ds = pygame.Surface((K.W, K.H), pygame.SRCALPHA)
+            self._dark_surf = ds
+            self._dark_key = None
+        if key != getattr(self, "_dark_key", None):
+            self._dark_key = key
+            ds.fill((6, 8, 18, alpha))
+            if r > 4:
+                mask = S.radial_mask(r)
+                ds.blit(mask, (int(x - r), int(y - r - 4)), special_flags=pygame.BLEND_RGBA_SUB)
         surf.blit(ds, (0, 0))
         # viñeta
         if getattr(self, "_vignette", None) is None:
