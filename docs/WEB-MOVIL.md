@@ -53,15 +53,41 @@ partida en marcha → movimiento con teclado a tiempo real; clics y táctil func
   ojo: la captura web sale con **alfa ~0.64** (colores ×0.64 sobre negro) al comparar
   con capturas de escritorio.
 
+## Táctil en partida (móvil)
+
+- **Movimiento = joystick virtual** abajo-izquierda (`game/world.py`: `STICK_BASE`,
+  `STICK_ZONE`, `_stick_move`, `draw_stick`). El dedo dentro de la zona genera un
+  vector (dx,dy); velocidad proporcional. Se abandonó "camina hacia el dedo".
+- **Botones táctiles** (`game/run_ui.py` `_ui_touch`): pausa (II, arriba-derecha),
+  DASH y FOGO (abajo-derecha). Se registran en `draw()`, NUNCA en `update()`: el GUI
+  dibuja el botón en el momento de la llamada y el draw del mundo lo taparía
+  (síntoma: "se puede pulsar pero no se ve el botón").
+- **Teclas virtuales** (`Input.press_virtual`): el ciclo correcto es `begin()` sin
+  borrarlas y `clear_virtual()` al final del frame (tras `scene.draw()`), para que
+  el mundo las vea en el update del frame siguiente.
+- **Móvil en vertical**: aviso "GIRA EL MÓVIL PARA JUGAR" en la plantilla (táctil +
+  vertical + canvas arrancado). En horizontal (16:9) el juego ocupa toda la pantalla.
+
+## Trampas de audio/settings/staging (lecciones)
+
+- **El staging se re-copia en CADA build**: `build_web.py` copia `main_web.py` de la
+  RAÍZ a `build/web_src/main.py`. Los parches van SIEMPRE a la raíz; parchear la
+  copia del staging no sirve (el siguiente build la pisa).
+- **Nunca dejes `vol_music`/`vol_sfx` a 0 en el prep de settings web** — deja el
+  juego mudo (pasó: resto de las pruebas tempranas). En web el prep solo toca
+  `seen_intro`.
+- **Favicon**: `pygbag --build` re-escribe `favicon.png` (su rana) DESPUÉS de
+  cualquier copia previa → `build_web.py` la repone tras el subprocess.
+- Audio web: el AudioContext necesita un gesto; SDL lo reanuda al primer toque.
+  Para diagnosticar "no suena": `vol=... aud=...` en el log cada 300 frames.
+
 ## Pendiente (siguiente paso del port)
 
 - **Guardado en web**: el FS del navegador no persiste; usar IDBFS/localStorage.
-- **Controles táctiles de juego** (joystick virtual): en móvil los menús ya funcionan
-  con toques (touch→mouse); falta el movimiento en partida.
+  (Consecuencia actual: la guía del primer turno sale en cada carga.)
 - **PWA/APK**: empaquetar `build/web` (service worker + manifest) y decidir TWA/WebView.
-- **Rendimiento en móvil**: medir fps reales en un móvil; ajustar si hiciera falta.
+- **Rendimiento en móvil**: medido y confirmado bueno por el usuario.
 
-(Resuelto en esta iteración: loader propio en la plantilla `tools/web_template.tmpl`;
-canvas 16:9 estable con `napal_fit_canvas`; RECENTRAR/PANTALLA COMPLETA por JS del
-navegador; favicon `icon_napal.png`; la atenuación de color del canvas desapareció al
-pasar a backing 1280×720.)
+(Resuelto en esta iteración: joystick táctil; botones de pausa/DASH/FOGO visibles;
+música en web (vol a 0 fuera); mapas rediseñados con rejilla de oficina con sentido;
+aviso de girar el móvil; favicon repuesto tras el build.)
