@@ -23,6 +23,11 @@ PICKUP_CAP = 320
 
 
 class RunWorld:
+    # --- joystick tactil (web): esquina inferior izquierda
+    STICK_BASE = (92, 282)
+    STICK_R = 54
+    STICK_ZONE = 132
+
     def __init__(self, app, char_id: str, guardia: int, mut_ids: list[str], seed: int | None = None):
         self.app = app
         self.save = app.save
@@ -67,6 +72,13 @@ class RunWorld:
         self.hash = Hash(44)
         self.floor = S.bake_floor(self.rng.randrange(1000), self.map.get("floor"), self.map.get("zones"))
         self._make_props()
+
+        # --- joystick tactil (web)
+        self.stick_dx = 0.0
+        self.stick_dy = 0.0
+        self.stick_on = False
+        self._stick_base = None
+        self._stick_knob = None
 
         # --- estado del run
         self.time = 0.0
@@ -438,26 +450,67 @@ class RunWorld:
         self._end_wave()
 
     # ================================================================ jugador
+    # ------------------------------------------------------------- tactil
+    def _pointer_game(self):
+        """Puntero (dedo o raton emulado) en coordenadas del juego, o None."""
+        inp = self.app.input
+        if inp.finger is not None:
+            sw, sh = self.app.window.get_size()
+            px, py = inp.finger[0] * sw, inp.finger[1] * sh
+        elif inp.mouse_down:
+            px, py = inp.click_pos
+        else:
+            return None
+        return ((px - self.app.off[0]) / self.app.scale,
+                (py - self.app.off[1]) / self.app.scale)
+
+    def _stick_move(self):
+        """Vector del joystick tactil (None si no esta activo)."""
+        p = self._pointer_game()
+        bx, by = self.STICK_BASE
+        self.stick_on = False
+        if p is None:
+            self.stick_dx = self.stick_dy = 0.0
+            return None
+        dx, dy = p[0] - bx, p[1] - by
+        if dx * dx + dy * dy > self.STICK_ZONE ** 2:
+            self.stick_dx = self.stick_dy = 0.0
+            return None
+        self.stick_on = True
+        n = math.hypot(dx, dy)
+        if n > self.STICK_R:
+            k = self.STICK_R / n
+            dx, dy = dx * k, dy * k
+        self.stick_dx, self.stick_dy = dx, dy
+        if n < 10:
+            return None
+        v = V(dx, dy)
+        return v.normalize() * min(1.0, n / self.STICK_R)
+
+    def draw_stick(self, surf):
+        """Dibuja el joystick tactil (solo web)."""
+        if self._stick_base is None:
+            r = self.STICK_ZONE
+            self._stick_base = pygame.Surface((r * 2, r * 2), pygame.SRCALPHA)
+            pygame.draw.circle(self._stick_base, (18, 24, 42, 96), (r, r), r)
+            pygame.draw.circle(self._stick_base, (96, 112, 158, 120), (r, r), self.STICK_R, 2)
+            self._stick_knob = pygame.Surface((34, 34), pygame.SRCALPHA)
+            pygame.draw.circle(self._stick_knob, (206, 220, 248, 150), (17, 17), 16)
+            pygame.draw.circle(self._stick_knob, (255, 255, 255, 95), (17, 17), 16, 2)
+        self._stick_base.set_alpha(190 if self.stick_on else 120)
+        bx, by = self.STICK_BASE
+        surf.blit(self._stick_base, (bx - self.STICK_ZONE, by - self.STICK_ZONE))
+        surf.blit(self._stick_knob, (bx + self.stick_dx - 17, by + self.stick_dy - 17))
+
     def _update_player(self, dt):
         p = self.player
         inp = self.app.input
         move = inp.move_vector()
-        # movil/web: el dedo manda -> caminar hacia donde tocas (FINGER nativo de SDL;
-        # si no hay dedo, vale el raton mantenido)
+        # movil/web: joystick tactil (esquina inferior izquierda)
         if WEB and move.length_squared() == 0:
-            aim = None
-            if inp.finger is not None:
-                sw, sh = self.app.window.get_size()
-                aim = (inp.finger[0] * sw, inp.finger[1] * sh)
-            elif inp.mouse_down:
-                # posicion del ultimo evento (fiable en web: el toque emula raton)
-                aim = ((inp.click_pos[0] - self.app.off[0]) / self.app.scale,
-                       (inp.click_pos[1] - self.app.off[1]) / self.app.scale)
-            if aim is not None:
-                sx, sy = self.cam.to_screen(p.x, p.y)
-                dx, dy = aim[0] - sx, aim[1] - sy
-                if dx * dx + dy * dy > 30 * 30:
-                    move = V(dx, dy).normalize()
+            sv = self._stick_move()
+            if sv is not None:
+                move = sv
         if move.length_squared() > 0:
             p.facing = move.x < 0
             p.walk_t += dt

@@ -9,7 +9,7 @@ import pygame
 from . import const as K
 from . import icons as I
 from . import sprites as S
-from .core import Scene, clamp
+from .core import Scene, WEB, clamp
 from .gui import GUI, bar
 from .world import RunWorld
 from .content import chars as CC
@@ -84,6 +84,14 @@ class RunScene(Scene):
         w = self.world
         g = self.gui
         g.begin()
+        # controles tactiles (web): pausa + acciones, solo en partida activa
+        if WEB and not self.paused and self.cards is None and self.tut_page == 0 and w.phase == "active":
+            if g.button(pygame.Rect(K.W - 34, 6, 28, 20), "II", "t_pausa", size=10):
+                self.paused = True
+            if g.button(pygame.Rect(K.W - 178, K.H - 76, 58, 26), "DASH", "t_dash", size=9):
+                self.app.input.press_virtual(pygame.K_LSHIFT)
+            if g.button(pygame.Rect(K.W - 112, K.H - 76, 58, 26), "FOGO", "t_fogo", size=9):
+                self.app.input.press_virtual(pygame.K_SPACE)
         if self._pend_fs:
             self._pend_fs = False
             self.app.toggle_fullscreen()
@@ -483,6 +491,8 @@ class RunScene(Scene):
     def draw(self, surf):
         w = self.world
         w.draw(surf)
+        if WEB:
+            w.draw_stick(surf)
         self._draw_hud(surf)
         if self.banner_t > 0 and self.banner_txt:
             a = min(1.0, self.banner_t / 0.5)

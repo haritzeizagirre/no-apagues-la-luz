@@ -100,6 +100,11 @@ class Input:
         self.finger: tuple[float, float] | None = None   # dedo activo (movil/web)
         self.finger_id = None
         self.click_pos = (0, 0)   # posicion (ventana) del ultimo evento de raton/toque
+        self.virt_just: set[int] = set()   # teclas "virtuales" (botones tactiles)
+
+    def press_virtual(self, key: int) -> None:
+        """Simula la pulsacion de una tecla este frame (botones tactiles de la UI)."""
+        self.virt_just.add(key)
 
     def begin(self):
         self.just = set()
@@ -107,6 +112,7 @@ class Input:
         self.mouse_released = False
         self.any_key = False
         self.text = ""
+        self.virt_just = set()
 
     def handle(self, ev: pygame.event.Event):
         if ev.type == pygame.KEYDOWN:
@@ -136,10 +142,10 @@ class Input:
             self.finger = None
 
     def held(self, key: int) -> bool:
-        return self.keys.get(key, False)
+        return self.keys.get(key, False) or key in self.virt_just
 
     def just_pressed(self, key: int) -> bool:
-        return key in self.just
+        return key in self.just or key in self.virt_just
 
     def move_vector(self) -> V:
         x = (self.held(pygame.K_d) or self.held(pygame.K_RIGHT)) - (self.held(pygame.K_a) or self.held(pygame.K_LEFT))

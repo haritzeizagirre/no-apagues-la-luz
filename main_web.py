@@ -85,8 +85,12 @@ async def _amain() -> None:
             except Exception:
                 pos = "?"
             inp = app.input
+            w2 = getattr(app.scene, "world", None)
+            st = ""
+            if w2 is not None and hasattr(w2, "stick_on"):
+                st = f" stick=({int(w2.stick_on)},{w2.stick_dx:.0f},{w2.stick_dy:.0f})"
             print(f"[web] frames={n} escena={type(app.scene).__name__} pos={pos} "
-                  f"md={int(inp.mouse_down)} dedo={inp.finger} clic={inp.click_pos}", flush=True)
+                  f"md={int(inp.mouse_down)} dedo={inp.finger} clic={inp.click_pos}{st}", flush=True)
         # patron canonico de pygbag: sleep(0) puro cede al navegador;
         # un timer (sleep(0.016)) NO resuelve en modo main-thread
         await asyncio.sleep(0)
