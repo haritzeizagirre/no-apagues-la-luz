@@ -1,0 +1,55 @@
+plugins {
+    id 'com.android.application'
+}
+
+// firma: los secretos viven en keystore.properties (ignorado por git)
+def keystoreProps = new Properties()
+def keystorePropsFile = rootProject.file("keystore.properties")
+if (keystorePropsFile.exists()) {
+    keystoreProps.load(new FileInputStream(keystorePropsFile))
+}
+
+android {
+    namespace 'io.github.haritzeizagirre.noapagueslaluz'
+    compileSdk 36
+
+    defaultConfig {
+        applicationId "io.github.haritzeizagirre.noapagueslaluz"
+        minSdk 24
+        targetSdk 36
+        versionCode 2
+        versionName "1.1.0"
+    }
+
+    signingConfigs {
+        release {
+            if (keystorePropsFile.exists()) {
+                storeFile file(keystoreProps['storeFile'])
+                storePassword keystoreProps['storePassword']
+                keyAlias keystoreProps['keyAlias']
+                keyPassword keystoreProps['keyPassword']
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.release
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    // los grandes (wasm, datos, tar) sin recomprimir: arranque mas rapido
+    androidResources {
+        noCompress 'wasm', 'data', 'gz', 'ogg'
+    }
+}
+
+dependencies {
+    implementation 'androidx.webkit:webkit:1.12.1'
+}

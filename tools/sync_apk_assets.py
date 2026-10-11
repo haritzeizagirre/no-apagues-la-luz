@@ -68,13 +68,42 @@ def main() -> int:
             print(f"AVISO: falta {origen}")
         print(f"copiado: {nombre}")
 
-    # 4) el runtime del CDN debe seguir empaquetado
+    # 4) el runtime del CDN debe seguir empaquetado; si falta, se descarga
     if not (DEST / "cdn" / "0.9.3" / "pythons.js").exists():
-        print("AVISO: falta assets/cdn/ (runtime pygbag). Descargalo del CDN publico.")
-        return 1
+        print("assets/cdn/ no esta: descargando runtime del CDN publico...")
+        descargar_cdn(DEST / "cdn")
     print("assets/cdn/ presente (runtime + wheel)")
     print("OK — ahora: cd apk_app && JAVA_HOME=<jdk21> ./gradlew assembleRelease")
     return 0
+
+
+ARCHIVOS_CDN = [
+    "0.9.3/pythons.js",
+    "0.9.3/empty.html",
+    "0.9.3/empty.ogg",
+    "0.9.3/cpythonrc.py",
+    "0.9.3/cpython312/main.js",
+    "0.9.3/cpython312/main.data",
+    "0.9.3/cpython312/main.wasm",
+    "vt/xterm.js",
+    "vt/xterm.css",
+    "vt/xterm-addon-image.js",
+    "vtx.js",
+    "cp312/pygame_ce-2.5.7-cp312-cp312-wasm32_bi_emscripten.whl",
+    "index-0.9.3-cp312.json",
+]
+
+
+def descargar_cdn(destino: Path) -> None:
+    import urllib.request
+
+    base = "https://pygame-web.github.io/cdn/"
+    for rel in ARCHIVOS_CDN:
+        out = destino / rel
+        out.parent.mkdir(parents=True, exist_ok=True)
+        with urllib.request.urlopen(base + rel, timeout=180) as r:
+            out.write_bytes(r.read())
+        print(f"  descargado cdn/{rel} ({out.stat().st_size} bytes)")
 
 
 if __name__ == "__main__":

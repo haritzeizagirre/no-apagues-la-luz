@@ -1,0 +1,17 @@
+keystore.properties
+local.properties
+.gradle/
+build/
+app/build/
+*.apk
+*.aab
+*.keystore
+*.jks
+# assets generados (los produce tools/sync_apk_assets.py)
+app/src/main/assets/cdn/
+app/src/main/assets/web_src.gz.bin
+app/src/main/assets/index.html
+app/src/main/assets/favicon.png
+app/src/main/assets/icon_*.png
+app/src/main/assets/manifest.webmanifest
+app/src/main/assets/sw.js
