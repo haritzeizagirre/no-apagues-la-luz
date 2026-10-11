@@ -20,7 +20,7 @@ def _prep_web_settings() -> None:
         d = {}
         if p.exists():
             d = json.loads(p.read_text(encoding="utf-8"))
-        d.update({"seen_intro": True})
+        d.update({"seen_intro": True, "vol_master": 0.8, "vol_sfx": 0.6, "vol_music": 0.6})
         p.write_text(json.dumps(d), encoding="utf-8")
     except Exception as e:
         print("[web] prep settings:", e, flush=True)
@@ -77,6 +77,7 @@ async def _amain() -> None:
             print("[web] primer frame dibujado", flush=True)
             beacon("web:frame1")
             _loader(hide=True)
+            app.apply_fill()
         elif n % 300 == 0:
             try:
                 w = getattr(app.scene, "world", None)

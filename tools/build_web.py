@@ -39,12 +39,16 @@ def stage() -> None:
     if not assets_dst.exists():
         shutil.copytree(ROOT / "assets", assets_dst,
                         ignore=shutil.ignore_patterns("raw_downloads"))
-    # convertir WAV/MP3 -> OGG si quedara alguno (pygbag los rechaza)
+    # convertir WAV/MP3 -> OGG si quedara alguno (pygbag los rechaza).
+    # la musica en 44100 q6 (el 22050 mono sonaba "saturado"); los sfx en 22050 q4
     for w in list(assets_dst.rglob("*.wav")) + list(assets_dst.rglob("*.mp3")):
         ogg = w.with_suffix(".ogg")
         print(f"[web] convirtiendo {w.name} -> ogg")
-        subprocess.run(["ffmpeg", "-y", "-i", str(w), "-ac", "1", "-ar", "22050",
-                        "-c:a", "libvorbis", "-q:a", "4", str(ogg)],
+        if "music" in w.parts:
+            enc = ["-ac", "1", "-ar", "44100", "-c:a", "libvorbis", "-q:a", "6"]
+        else:
+            enc = ["-ac", "1", "-ar", "22050", "-c:a", "libvorbis", "-q:a", "4"]
+        subprocess.run(["ffmpeg", "-y", "-i", str(w)] + enc + [str(ogg)],
                        check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         if ogg.exists():
             w.unlink()
@@ -75,7 +79,10 @@ def main() -> int:
     args = sys.argv[1:]
     stage()
     tmpl = ROOT / "tools" / "web_template.tmpl"
-    cmd = [sys.executable, "-m", "pygbag", "--ume_block", "0"]
+    # SIN --ume_block 0: el runtime espera al primer gesto (MM.UME) antes de
+    # arrancar; asi el AudioContext se crea DESPUES del toque y el audio suena
+    # en movil (con ume_block 0 nace suspendido y el movil se queda mudo).
+    cmd = [sys.executable, "-m", "pygbag"]
     if tmpl.is_file():
         cmd += ["--template", str(tmpl)]
     if "--lan" in args:

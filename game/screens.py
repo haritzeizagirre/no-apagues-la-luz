@@ -9,7 +9,7 @@ import pygame
 from . import const as K
 from . import icons as I
 from . import sprites as S
-from .core import Scene, clamp
+from .core import Scene, clamp, WEB
 from .gui import GUI, bar
 from .content import ach as ACH
 from .content import chars as CC
@@ -586,6 +586,17 @@ class AjustesScene(BaseScene):
         s["flash"] = g.toggle(pygame.Rect(160, y + 166, 200, 22), "Destellos de pantalla", s["flash"], "fla")
         s["show_fps"] = g.toggle(pygame.Rect(160, y + 194, 200, 22), "Mostrar FPS", s["show_fps"], "fps")
         s["assist"] = g.toggle(pygame.Rect(160, y + 222, 300, 22), "Modo becario (-25% vida enemiga)", s["assist"], "ass")
+        if WEB:
+            # ajustes solo-web: controles tactiles (auto/si/no) y estirar pantalla
+            tmode = str(s.data.get("touch_ui", "auto"))
+            if g.button(pygame.Rect(466, y + 222, 152, 22), f"TÁCTILES: {tmode.upper()}", "tch", size=10):
+                s["touch_ui"] = {"auto": "si", "si": "no", "no": "auto"}.get(tmode, "auto")
+                changed = True
+            flabel = "LLENAR: " + ("SÍ" if s.data.get("fill_screen") else "NO")
+            if g.button(pygame.Rect(514, y + 246, 104, 22), flabel, "fil", size=10):
+                s["fill_screen"] = not bool(s.data.get("fill_screen"))
+                self.app.apply_fill()
+                changed = True
         if self.app.input.mouse_released or self.app.input.mouse_clicked:
             changed = True
         # ventana: pantalla completa + rescate (la ventana se redimensiona con el marco, como cualquier app)

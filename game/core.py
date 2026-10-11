@@ -99,6 +99,8 @@ class Input:
         self.text = ""
         self.finger: tuple[float, float] | None = None   # dedo activo (movil/web)
         self.finger_id = None
+        self.has_touch = False   # True en cuanto llega un evento de dedo (deteccion tactil)
+        self.taps: list[tuple[float, float]] = []   # dedos que bajaron este frame (botones)
         self.click_pos = (0, 0)   # posicion (ventana) del ultimo evento de raton/toque
         self.virt_just: set[int] = set()   # teclas "virtuales" (botones tactiles)
 
@@ -116,6 +118,7 @@ class Input:
         self.mouse_released = False
         self.any_key = False
         self.text = ""
+        self.taps = []
 
     def handle(self, ev: pygame.event.Event):
         if ev.type == pygame.KEYDOWN:
@@ -135,6 +138,8 @@ class Input:
             self.mouse_down = False
             self.mouse_released = True
         elif ev.type == pygame.FINGERDOWN:
+            self.has_touch = True
+            self.taps.append((ev.x, ev.y))
             if self.finger_id is None:
                 self.finger_id = ev.finger_id
                 self.finger = (ev.x, ev.y)
@@ -620,6 +625,20 @@ class App:
         s.flush()
         self._create_window()
 
+    def touch_ui(self) -> bool:
+        """¿Mostrar controles tactiles (joystick y botones)? auto|si|no."""
+        mode = str(self.settings.data.get("touch_ui", "auto"))
+        if mode == "si":
+            return True
+        if mode == "no":
+            return False
+        return self.input.has_touch
+
+    def apply_fill(self):
+        """Web: ajuste de pantalla AJUSTADA(0)/LLENAR(1) via CSS del navegador."""
+        if WEB:
+            _web_js("napal_set_fill", 1 if self.settings.data.get("fill_screen") else 0)
+
     def mouse(self):
         mx, my = pygame.mouse.get_pos()
         return ((mx - self.off[0]) / self.scale, (my - self.off[1]) / self.scale)
@@ -677,9 +696,11 @@ class App:
                 gui = getattr(self.scene, "gui", None)
                 if gui is not None:
                     gui.begin()
+            # las teclas virtuales (botones tactiles, creadas en draw) valen
+            # hasta ESTE update; se limpian aqui y draw crea las del siguiente
+            self.input.clear_virtual()
             self.screen.fill(K.C["negro"])
             self.scene.draw(self.screen)
-        self.input.clear_virtual()   # los botones tactiles (draw) valen hasta el proximo update
         self.audio.update(dt)
         if self.settings["show_fps"] or self.debug:
             self.fps_acc += dt

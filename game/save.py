@@ -42,6 +42,8 @@ def default_meta() -> dict:
 def default_settings() -> dict:
     return {
         "vol_master": 0.9,
+        "touch_ui": "auto",       # controles tactiles: auto (por eventos de dedo) | si | no
+        "fill_screen": False,     # web: estirar el canvas para llenar la pantalla
         "vol_sfx": 0.9,
         "vol_music": 0.75,
         "fullscreen": False,

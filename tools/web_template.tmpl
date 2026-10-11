@@ -70,7 +70,7 @@ async def custom_site():
         __import__(__name__).__file__ = main
 
         # now make a prompt
-        msg  = "Ready to start ! Please click/touch page"
+        msg  = "▶ TOCA PARA EMPEZAR"
         platform.window.infobox.innerText = msg
         print("\n"*4, f"    * Waiting for media user engagement. {msg} *" , "\n"*4)
 
@@ -294,6 +294,15 @@ function show_infobox() {
             justify-content: center;
             text-align: center;
             padding: 24px;
+            flex-direction: column;
+            gap: 14px;
+            cursor: pointer;
+        }
+
+        #napal_rotate span {
+            font-family: "Silkscreen", monospace;
+            font-size: 11px;
+            color: #9aa4c8;
         }
         div.emscripten { text-align: center; }
         div.emscripten_border { border: 1px solid black; }
@@ -390,7 +399,7 @@ height="{{cookiecutter.height}}px"
 
     <div id="infobox">preparando la oficina…</div>
 
-    <div id="napal_rotate">↻ GIRA EL MÓVIL PARA JUGAR</div>
+    <div id="napal_rotate" onclick="window.napal_rotate_tap()">↻ GIRA EL MÓVIL PARA JUGAR<span>(TOCA PARA PANTALLA COMPLETA)</span></div>
 
     <div id=html></div>
 
@@ -514,22 +523,33 @@ frameborder="1"
     window.napal_fit_canvas = function () {
         const c = document.querySelector('canvas.emscripten');
         if (c && c.width >= 2 && c.height >= 2) {
-            const ar = c.width / c.height;
-            let w = window.innerWidth, h = window.innerHeight;
-            if (w / h > ar) { w = Math.round(h * ar); } else { h = Math.round(w / ar); }
             c.style.position = 'fixed';
             c.style.left = '50%'; c.style.top = '50%';
             c.style.right = 'auto'; c.style.bottom = 'auto';
             c.style.transform = 'translate(-50%, -50%)';
             c.style.margin = '0';
-            c.style.width = w + 'px';
-            c.style.height = h + 'px';
+            if (window.napal_fill) {
+                // LLENAR: estirar el canvas hasta cubrir toda la ventana
+                c.style.width = window.innerWidth + 'px';
+                c.style.height = window.innerHeight + 'px';
+            } else {
+                const ar = c.width / c.height;
+                let w = window.innerWidth, h = window.innerHeight;
+                if (w / h > ar) { w = Math.round(h * ar); } else { h = Math.round(w / ar); }
+                c.style.width = w + 'px';
+                c.style.height = h + 'px';
+            }
         }
         const ib = document.getElementById('infobox');
         if (ib && ib.style.display !== 'none') {
             ib.style.left = Math.round((window.innerWidth - ib.offsetWidth) / 2) + 'px';
             ib.style.top = Math.round((window.innerHeight - ib.offsetHeight) / 2) + 'px';
         }
+    };
+    window.napal_fill = false;
+    window.napal_set_fill = function (v) {
+        window.napal_fill = !!v;
+        window.napal_fit_canvas();
     };
     window.napal_fullscreen = function () {
         if (!document.fullscreenElement) {
@@ -561,6 +581,14 @@ frameborder="1"
         const portrait = window.innerHeight > window.innerWidth;
         const started = !!document.fullscreenElement || (document.querySelector('canvas.emscripten') || {}).width > 2;
         d.style.display = (touch && portrait && started) ? 'flex' : 'none';
+    };
+    window.napal_rotate_tap = function () {
+        // tocar el aviso = ponerse a pantalla completa directamente
+        if (!document.fullscreenElement) {
+            window.napal_fullscreen();
+        } else if (document.exitFullscreen) {
+            document.exitFullscreen();
+        }
     };
     window.addEventListener('resize', function () { window.napal_orientation(); });
     window.addEventListener('orientationchange', function () { window.napal_orientation(); });

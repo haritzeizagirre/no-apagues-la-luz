@@ -480,24 +480,40 @@ class RunScene(Scene):
             self.app.set_scene("sellos")
 
     # ------------------------------------------------------------- HUD
+    def _tap_hit(self, rect) -> bool:
+        """¿Algún dedo tocó dentro del rect este frame? En móvil el 2º dedo (el
+        que toca el botón mientras el 1º sujeta el joystick) NO genera clic de
+        ratón, así que los botones táctiles también escuchan eventos de dedo."""
+        inp = self.app.input
+        for (fx, fy) in inp.taps:
+            sw, sh = self.app.window.get_size()
+            gx = (fx * sw - self.app.off[0]) / self.app.scale
+            gy = (fy * sh - self.app.off[1]) / self.app.scale
+            if rect.collidepoint(int(gx), int(gy)):
+                return True
+        return False
+
     def _ui_touch(self):
-        """Botones tactiles (web). Se dibujan en draw(): el GUI dibuja al instante
-        y en update() el draw del mundo los taparia."""
-        if not (WEB and not self.paused and self.cards is None and self.tut_page == 0
-                and self.world.phase == "active"):
+        """Botones tactiles (web+tactil). Se dibujan en draw(): el GUI dibuja al
+        instante y en update() el draw del mundo los taparia."""
+        if not (WEB and self.app.touch_ui() and not self.paused and self.cards is None
+                and self.tut_page == 0 and self.world.phase == "active"):
             return
         g = self.gui
-        if g.button(pygame.Rect(K.W - 36, 4, 32, 22), "II", "t_pausa", size=11):
+        r_pausa = pygame.Rect(K.W - 40, 4, 36, 24)
+        r_dash = pygame.Rect(K.W - 204, K.H - 92, 92, 44)
+        r_fogo = pygame.Rect(K.W - 104, K.H - 92, 92, 44)
+        if g.button(r_pausa, "II", "t_pausa", size=11) or self._tap_hit(r_pausa):
             self.paused = True
-        if g.button(pygame.Rect(K.W - 178, K.H - 76, 58, 26), "DASH", "t_dash", size=9):
+        if g.button(r_dash, "DASH", "t_dash", size=13) or self._tap_hit(r_dash):
             self.app.input.press_virtual(pygame.K_LSHIFT)
-        if g.button(pygame.Rect(K.W - 112, K.H - 76, 58, 26), "FOGO", "t_fogo", size=9):
+        if g.button(r_fogo, "FOGO", "t_fogo", size=13) or self._tap_hit(r_fogo):
             self.app.input.press_virtual(pygame.K_SPACE)
 
     def draw(self, surf):
         w = self.world
         w.draw(surf)
-        if WEB:
+        if self.app.touch_ui() and self.tut_page == 0:
             w.draw_stick(surf)
         self._draw_hud(surf)
         if WEB:
@@ -611,23 +627,29 @@ class RunScene(Scene):
         surf.blit(ov, (0, 0))
         if self.tut_page == 1:
             g.panel((60, 30, 520, 268), "slab", "¿QUÉ ESTOY VIENDO?")
+            touch = self.app.touch_ui()
             lines = [
                 ("RELOJ (arriba izq.)", "hora del turno · barra naranja = lo que queda"),
                 ("MONEDAS (arriba der.)", "se gastan en LA EXPENDEDORA entre horas"),
                 ("VIDA (abajo izq.)", "tu bombilla · si llega a 0, te apagan"),
                 ("RECUERDOS (barra verde)", "experiencia: llénala y eliges una mejora"),
                 ("TUS ARMAS (iconos abajo)", "disparan solas · 2 iguales se fusionan"),
-                ("FOGONAZO (ESPACIO)", "pulso de luz que aturde lo que te rodea"),
-                ("DASH (SHIFT)", "esquiva rápida con un instante sin daño"),
+                ("FOGONAZO" + (" (botón FOGO)" if touch else " (ESPACIO)"),
+                 "pulso de luz que aturde lo que te rodea"),
+                ("DASH" + (" (botón DASH)" if touch else " (SHIFT)"),
+                 "esquiva rápida con un instante sin daño"),
                 ("BOTÍN DEL SUELO", "chispas, monedas y vida: los recoges al pasar"),
                 ("CAJAS DE CARTÓN", "chasquéalas: sueltan monedas y a veces curitas"),
             ]
+            if touch:
+                lines.insert(4, ("JOYSTICK (abajo izq.)", "desliza el dedo para moverte"))
             y = 52
+            paso = 22 if touch else 24
             for a, b in lines:
                 f.text(surf, f"· {a}:", (76, y), size=10, color=K.C["ambar_claro"])
                 f.text(surf, b, (252, y), size=10, color=K.C["crema"])
-                y += 24
-            f.text(surf, "clic / ENTER para seguir >", (K.W // 2, K.H - 24), size=11, color=K.C["ambar"],
+                y += paso
+            f.text(surf, "toca / clic / ENTER para seguir >", (K.W // 2, K.H - 24), size=11, color=K.C["ambar"],
                    anchor="center", shadow=True)
         else:
             g.panel((60, 30, 520, 268), "slab", "¿POR QUÉ EMPIEZAS CON ESAS ARMAS?")

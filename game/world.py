@@ -506,8 +506,8 @@ class RunWorld:
         p = self.player
         inp = self.app.input
         move = inp.move_vector()
-        # movil/web: joystick tactil (esquina inferior izquierda)
-        if WEB and move.length_squared() == 0:
+        # movil/web: joystick tactil (esquina inferior izquierda, si el modo lo pide)
+        if WEB and self.app.touch_ui() and move.length_squared() == 0:
             sv = self._stick_move()
             if sv is not None:
                 move = sv
