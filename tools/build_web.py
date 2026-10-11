@@ -89,6 +89,10 @@ def main() -> int:
         cmd += ["--bind", lan_ip]
         print(f"[web] servidor accesible en la red local: http://{lan_ip}:8000/")
         print("[web] (abrelo desde el movil conectado a la misma wifi)")
+    if "--port" in args:
+        i = args.index("--port")
+        if i + 1 < len(args):
+            cmd += ["--port", args[i + 1]]
     if "--build" in args:
         cmd.append("--build")
     cmd.append(".")
