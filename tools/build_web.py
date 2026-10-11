@@ -113,6 +113,21 @@ def main() -> int:
         shutil.copy2(web_icon, out_dir / "favicon.png")
         shutil.copy2(web_icon, out_dir / "icon_napal.png")
         print("[web] favicon restaurado (lampara) tras el build")
+    # PWA: manifest + iconos de app + service worker (version de cache por build)
+    if out_dir.is_dir():
+        for name in ("icon_192.png", "icon_512.png", "icon_maskable.png"):
+            src = ROOT / "assets" / name
+            if src.exists():
+                shutil.copy2(src, out_dir / name)
+        man = ROOT / "tools" / "manifest.webmanifest"
+        if man.is_file():
+            shutil.copy2(man, out_dir / "manifest.webmanifest")
+        sw = ROOT / "tools" / "sw.js"
+        if sw.is_file():
+            stamp = str(int(__import__("time").time()))
+            txt = sw.read_text(encoding="utf-8").replace("__V__", stamp)
+            (out_dir / "sw.js").write_text(txt, encoding="utf-8")
+        print("[web] PWA lista: manifest + iconos + sw.js (cache v" + stamp + ")" if sw.is_file() else "[web] PWA: manifest + iconos")
     return rc
 
 

@@ -1,0 +1,17 @@
+{
+  "name": "NO APAGUES LA LUZ — el turno de las sombras",
+  "short_name": "NO APAGUES LA LUZ",
+  "description": "Survivor-like de oficina nocturna. Aguanta el turno, enciende la luz, no dejes que te apaguen.",
+  "lang": "es",
+  "start_url": ".",
+  "scope": ".",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#0e121f",
+  "theme_color": "#0e121f",
+  "icons": [
+    { "src": "icon_192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon_512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icon_maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

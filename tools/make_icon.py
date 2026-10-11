@@ -54,3 +54,17 @@ if __name__ == "__main__":
     with open(web, "wb") as f:
         f.write(build_icon_png(64))
     print(f"[icono] {web} ({os.path.getsize(web)} bytes)")
+    # iconos PWA (192/512) + maskable (lampara al ~72% sobre fondo noche, zona
+    # segura de las mascaras redondas de Android)
+    for sz in (192, 512):
+        p = os.path.join(K.RES, "assets", f"icon_{sz}.png")
+        with open(p, "wb") as f:
+            f.write(build_icon_png(sz))
+        print(f"[icono] {p} ({os.path.getsize(p)} bytes)")
+    mask = pygame.Surface((512, 512))
+    mask.fill((14, 18, 31))
+    inner = pygame.transform.smoothscale(S.lamp_icon(368), (368, 368))
+    mask.blit(inner, (72, 72))
+    p = os.path.join(K.RES, "assets", "icon_maskable.png")
+    pygame.image.save(mask, p)
+    print(f"[icono] {p} ({os.path.getsize(p)} bytes)")

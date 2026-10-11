@@ -181,10 +181,15 @@ function show_infobox() {
     <title>NO APAGUES LA LUZ — el turno de las sombras</title>
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="viewport" content="height=device-height, initial-scale=1.0">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes"/>
+    <meta name="theme-color" content="#0e121f">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="NO APAGUES LA LUZ">
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="apple-touch-icon" href="icon_192.png">
 
 
     <link rel="icon" type="image/png" href="icon_napal.png" sizes="16x16">
@@ -593,6 +598,14 @@ frameborder="1"
     window.addEventListener('resize', function () { window.napal_orientation(); });
     window.addEventListener('orientationchange', function () { window.napal_orientation(); });
     setInterval(function () { window.napal_orientation(); }, 800);
+
+    // PWA: registrar el service worker (cache offline). Solo en contexto seguro
+    // (https o localhost); en la LAN por http no hay SW y se juega igual.
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function () {
+            navigator.serviceWorker.register('sw.js').catch(function () {});
+        });
+    }
 
     </script>
 
