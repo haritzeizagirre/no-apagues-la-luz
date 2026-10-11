@@ -1,54 +1,64 @@
-# Build web / móvil (pygbag) — estado y hallazgos
+# NO APAGUES LA LUZ — versión web/móvil (pygbag)
 
-Spike de viabilidad del puerto a navegador/móvil con **pygbag** (pygame-ce → WebAssembly),
-**sin reescribir el juego**: la misma base de código corre en PC (exe) y en navegador/móvil.
+**Estado: JUGABLE EN EL NAVEGADOR** (verificado en Chrome real: menú → selección →
+partida en marcha → movimiento con teclado a tiempo real; clics y táctil funcionan).
 
-## Lo que YA funciona (verificado con evidencia real)
-- `pygbag --ume_block 0 --build main_web.py` empaqueta el juego completo: **454 archivos → `web_src.apk` (~22 MB)**.
-- El pipeline arranca en Chrome: CPython 3.12 WASM → wheel **pygame-ce 2.5.7 WASM** (1,5 MB) → desempaquetado de la app (21 MB).
-- **Nuestro código se ejecuta en el navegador**: la pestaña pasa a llamarse
-  "NO APAGUES LA LUZ — el turno de las sombras" (lo hace `pygame.display.set_caption`) y se crea
-  el canvas 1280×720 (lo hace `set_mode`).
-- Audio: **pygbag rechaza WAV** (y MP3) → se convirtió todo a OGG con ffmpeg. `game/audio.py` ya acepta
-  `.ogg` como candidato de `assets/sfx/<nombre>.ogg`.
+## Receta (lo que hace falta para que funcione)
 
-## Bloqueo actual (lo que falta para que sea jugable en web)
-Tras arrancar la app, el hilo principal queda saturado y **no devuelve el control al navegador**
-(sin repintado, sin input, sin consola; CPU ~100% de un núcleo; CDP sin responder durante minutos).
-Plan de ataque, por orden de probabilidad:
-1. **Bucle**: pygbag ejecuta Python en el hilo principal; hay que encontrar el patrón de cesión correcto
-   (`await asyncio.sleep(0)` y `sleep(0.016)` no bastaron). Revisar wiki de pygbag (main loop / onCustomMessage).
-2. **Coste por frame**: render en software a 1280×720 (escala desde 640×360). En web: ventana 640×360,
-   evitar `smoothscale` por frame, y **perfil de calidad** (menos partículas/enemigos, 30 fps opcional).
-3. Descartar trabajo pesado dentro de `build_app` (pantalla de carga + ceder entre fases).
+1. **pygbag SIEMPRE ejecuta `main.py` del directorio que empaqueta** — ignora el
+   argumento del script si existe `main.py`. Por eso el montaje usa:
+   - `build/web_src/main.py` = **entrada web ASYNC** (copia de `main_web.py`).
+   - `build/web_src/desktop_entry.py` = la entrada de escritorio (`main.py` del repo);
+     `main_web.py` importa `build_app` de ahí.
+   - Construir todo con: `tools/build_web.py` (monta + `pygbag --ume_block 0 [--build] .`).
 
-Verificación: `tools/web_check.py` (controlador CDP propio: espera en tiempo real, consola del runtime,
-screenshot y análisis de píxeles, sin depender de herramientas externas).
+2. **El bucle principal debe ser `await asyncio.sleep(0)`** (patrón canónico de pygbag).
+   En el modo "main thread" del runtime, `asyncio.sleep(t)` **con temporizador nunca
+   resuelve**: el bucle queda aparcado y solo avanza cuando llegan eventos del navegador
+   (síntoma: la pantalla solo cambia al hacer clic).
 
-## Guardado en web
-- `%APPDATA%` no existe en el navegador: `const.py` cae a `Path.home()` (FS virtual **volátil**).
-- BrowserFS no está disponible (404 en el CDN de pygbag) → plan: persistir `meta.json`/`settings.json`
-  en `localStorage`/IndexedDB vía `platform.window`, con detección de entorno web.
+3. **Reloj de tiempo real** (`_RealClock` en `main_web.py`): con `sleep(0)` el pump
+   puede ir a >100 fps; el reloj debe devolver el tiempo real transcurrido para que
+   `dt` sea correcto (si no, la partida corre acelerada). `Clock.tick` de pygame-ce es
+   de solo lectura: se sustituye `app.clock` por un objeto propio.
 
-## Móvil (táctil)
-- El input ya está centralizado (`core.Input`) → añadir capa táctil: joystick virtual + botones
-  (fogonazo/dash) dibujados en pantalla; usar eventos `pygame.FINGER*` (SDL2 los soporta en móvil).
-- Los tooltips (hover) pasan a "tap para mostrar". La UI ya escala por enteros y la ventana es redimensionable.
+4. **Compatibilidad WASM del código** (sin romper escritorio):
+   - `pygame.math` no existe en el build → fallback mínimo de `Vector2` en `game/core.py`.
+   - `pygame.init` / `display.init/quit` pueden faltar → guardas `hasattr`.
+   - `pygame.mixer` se importa explícitamente (`import pygame.mixer`) antes de usarlo;
+     si no está, el audio degrada con elegancia (sin sonido).
+   - Fuentes TTF: `assets/fonts/*.ttf` cargan bien (verificado en WASM).
 
-## Comandos del spike
-```bash
-# empaquetar (desde build/web_src: copia de main.py + game/ + assets/ + main_web.py + _beacon.py)
-../../.venv/Scripts/python.exe -m pygbag --ume_block 0 --build main_web.py
+5. **Audio en OGG**: pygbag rechaza WAV/MP3 al empaquetar. `tools/build_web.py`
+   convierte automáticamente con ffmpeg; `game/audio.py` ya acepta `.ogg` como
+   candidato de sfx.
 
-# servidor de desarrollo — PUERTO 8000 IMPRESCINDIBLE: el wheel de pygame se pide a localhost:8000
-../../.venv/Scripts/python.exe -m pygbag --ume_block 0 main_web.py
+6. **Servidor en el puerto 8000**: el runtime pide el wheel de pygame-ce a
+   `http://localhost:8000/cdn/...`. El servidor de desarrollo de pygbag ya sirve ahí
+   (`tools/build_web.py` sin `--build`).
 
-# verificación automatizada (Chrome headless con --remote-debugging-port=9222)
-./.venv/Scripts/python.exe tools/web_check.py http://localhost:8000/ out.png
-```
+## Verificación (harness CDP)
 
-Notas: pygbag solo acepta OGG/OPUS; `--ume_block 0` evita la pantalla "clic para empezar"
-(en Safari móvil, además, no reproducir sonido al inicio). El puerto nativo Android vía
-`python-for-android` está descartado (Kivy eliminó el bootstrap de pygame): la vía realista
-en móvil es **PWA** (instalar desde el navegador) o un port a otro motor si algún día se
-quiere APK/tiendas.
+- `tools/probe_read.py` — título de la pestaña + texto de la consola xterm. La terminal
+  de la página es legible: `main_web.py` imprime `escena=<clase> pos=(x,y)` cada 300
+  frames (navegación y movimiento verificables sin capturas).
+- `tools/probe_interact.py GX GY` — clic en coordenadas del juego (640×360) + capturas
+  before/hover/click + diff.
+- `tools/shot.py OUT.png` — captura + volcado ASCII del juego (recorte del canvas).
+- `tools/probe_watch.py` — vigila el título de la pestaña (útil en arranques).
+- Chrome headless: `--headless=new --remote-debugging-port=9223 --remote-allow-origins=*`.
+  **Matar Chrome en Windows: `powershell Stop-Process -Name chrome -Force`**
+  (¡`taskkill //F` desde MSYS falla en silencio y las pestañas se acumulan!).
+- El canvas en la página ocupa ~(259,0,765,765) con el juego letterboxed 16:9 dentro;
+  ojo: la captura web sale con **alfa ~0.64** (colores ×0.64 sobre negro) al comparar
+  con capturas de escritorio.
+
+## Pendiente (siguiente paso del port)
+
+- **Atenuación del canvas**: revisar el formato de superficie/canvas del template
+  (cosmético, pero conviene arreglarlo).
+- **Guardado en web**: el FS del navegador no persiste; usar IDBFS/localStorage.
+- **Controles táctiles de juego** (joystick virtual): en móvil los menús ya funcionan
+  con toques (touch→mouse); falta el movimiento en partida.
+- **PWA/APK**: empaquetar `build/web` (service worker + manifest) y decidir TWA/WebView.
+- **Rendimiento en móvil**: medir fps reales en un móvil; ajustar si hiciera falta.
