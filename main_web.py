@@ -29,11 +29,25 @@ def _prep_web_settings() -> None:
 async def _amain() -> None:
     def beacon(*a, **k):   # balizas neutralizadas (llamadas JS sin consumir)
         pass
+
+    def _loader(text=None, hide=False):
+        # controla la pantalla de carga del template (JS del navegador)
+        try:
+            import platform as _pf
+            if text is not None:
+                _pf.window.napal_loader_text(text)
+            if hide:
+                _pf.window.napal_loader_hide()
+        except Exception:
+            pass
+
     beacon("web:start")
+    _loader("preparando la oficina…")
     _prep_web_settings()
     beacon("web:settings_ok")
     from desktop_entry import build_app
     app = build_app(headless=False)
+    _loader("encendiendo la lámpara…")
     # en web el limitador de FPS del reloj puede bloquear el hilo principal:
     import time as _t
 
@@ -62,6 +76,7 @@ async def _amain() -> None:
         if n == 1:
             print("[web] primer frame dibujado", flush=True)
             beacon("web:frame1")
+            _loader(hide=True)
         elif n % 300 == 0:
             try:
                 w = getattr(app.scene, "world", None)

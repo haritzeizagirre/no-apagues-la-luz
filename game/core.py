@@ -5,11 +5,27 @@ from __future__ import annotations
 import math
 import os
 import random
+import sys
 
 import pygame
 
 from . import const as K
 from . import sprites as S
+
+# ¿corremos dentro del navegador (pygbag/WASM)?
+WEB = sys.platform == "emscripten"
+
+
+def _web_js(name: str, *args) -> bool:
+    """Llama a una funcion JS del template web (napal_*). No-op fuera de web."""
+    if not WEB:
+        return False
+    try:
+        import platform as _pf
+        getattr(_pf.window, name)(*args)
+        return True
+    except Exception:
+        return False
 
 try:
     V = pygame.math.Vector2
@@ -488,6 +504,13 @@ class App:
 
     # ------------------------------------------------------------- ventana
     def _create_window(self):
+        if WEB:
+            # En web el "tamano de ventana" es el canvas: 1280x720 = 2x entero del
+            # lienzo 640x360 (pixel-perfect). El template JS escala el canvas al
+            # hueco del navegador conservando el 16:9 y lo recentra siempre.
+            self.window = pygame.display.set_mode((1280, 720))
+            self.scale, self.off, self.view = self._fit_view(1280, 720)
+            return
         info = pygame.display.get_desktop_sizes()[0] if pygame.display.get_desktop_sizes() else (1920, 1080)
         if self.headless:
             self.window = pygame.display.set_mode((K.W * 2, K.H * 2))
@@ -537,6 +560,13 @@ class App:
 
     def reset_window(self):
         """Desatasco: vuelve a una ventana 1280x720 centrada en el escritorio."""
+        if WEB:
+            # En web no se recrea la ventana (display.quit rompe el canvas de SDL):
+            # se recentra el canvas en el navegador con el JS del template.
+            self.settings["fullscreen"] = False
+            self.settings.flush()
+            _web_js("napal_fit_canvas")
+            return
         self.settings["fullscreen"] = False
         self.settings["win_w"], self.settings["win_h"] = 1280, 720
         self.settings.flush()
@@ -551,6 +581,12 @@ class App:
 
     def toggle_fullscreen(self):
         s = self.settings
+        if WEB:
+            # En web la pantalla completa la gestiona el navegador (JS), no SDL.
+            s["fullscreen"] = not s["fullscreen"]
+            s.flush()
+            _web_js("napal_fullscreen")
+            return
         if not s["fullscreen"] and self.window is not None:
             try:
                 s["win_w"], s["win_h"] = self.window.get_size()

@@ -50,6 +50,9 @@ def main() -> None:
     with open(OUT, "wb") as f:
         f.write(base64.b64decode(data))
     print("screenshot ->", OUT)
+    # rect real del canvas (el template lo redimensiona al vuelo)
+    r = send(3, "Runtime.evaluate", {"expression": "(() => {const c=document.querySelector('canvas.emscripten'); if(!c) return null; const r=c.getBoundingClientRect(); return JSON.stringify([r.x,r.y,r.width,r.height]);})()", "returnByValue": True})
+    rect = json.loads(r["result"]["result"]["value"]) if r else None
     ws.close()
 
     import pygame
@@ -68,6 +71,13 @@ def main() -> None:
                 bright += 1
     print("colores dominantes:", sorted(colors.items(), key=lambda kv: -kv[1])[:6])
     print("píxeles con luz:", bright)
+    if rect:
+        rx, ry, rw, rh = (int(v) for v in rect)
+        crop = pygame.Surface((rw, rh))
+        crop.blit(img, (0, 0), (rx, ry, rw, rh))
+        img = pygame.transform.smoothscale(crop, (640, 360))
+        print(f"recorte del canvas: {rect}")
+        w, h = img.get_size()
     step = max(1, w // 110)
     for y in range(0, h, step * 2):
         row = "".join("#" if sum(img.get_at((x, y))[:3]) > 380 else

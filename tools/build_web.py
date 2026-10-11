@@ -56,15 +56,28 @@ def stage() -> None:
     out_dir = WEB / "build" / "web"
     out_dir.mkdir(parents=True, exist_ok=True)
     if web_icon.exists():
+        # icon_napal.png = el que usa NUESTRA plantilla (pygbag re-escribe favicon.png
+        # en cada build con el suyo por defecto, asi que no podemos usar ese nombre)
+        shutil.copy2(web_icon, out_dir / "icon_napal.png")
         shutil.copy2(web_icon, out_dir / "favicon.png")
-        print("[web] favicon = lampara del juego")
+        print("[web] favicon = lampara del juego (icon_napal.png)")
+    # fuentes para la pantalla de carga del template
+    fonts_dir = out_dir / "fonts"
+    fonts_dir.mkdir(parents=True, exist_ok=True)
+    for ttf in ("PressStart2P-Regular.ttf", "Silkscreen-Regular.ttf"):
+        src = ROOT / "assets" / "fonts" / ttf
+        if src.exists():
+            shutil.copy2(src, fonts_dir / ttf)
     print(f"[web] montaje listo en {WEB}")
 
 
 def main() -> int:
     args = sys.argv[1:]
     stage()
+    tmpl = ROOT / "tools" / "web_template.tmpl"
     cmd = [sys.executable, "-m", "pygbag", "--ume_block", "0"]
+    if tmpl.is_file():
+        cmd += ["--template", str(tmpl)]
     if "--build" in args:
         cmd.append("--build")
     cmd.append(".")
