@@ -89,13 +89,42 @@ partida en marcha → movimiento con teclado a tiempo real; clics y táctil func
   cualquier copia previa → `build_web.py` la repone tras el subprocess.
 - Diagnóstico: `vol=... aud=... taps=...` en el log cada 300 frames.
 
+## APK Android independiente (apk_app/) — sin navegador
+
+La TWA (Bubblewrap) SIEMPRE abre Chrome por debajo. Para una app de verdad:
+`apk_app/` = proyecto Android minimo con un **WebView** + `WebViewAssetLoader`
+que sirve el juego entero desde dentro del APK. Sin permiso de INTERNET.
+
+- **Sincronizar assets**: `.venv/Scripts/python.exe tools/sync_apk_assets.py`
+  (copia `build/web_src/build/web/` → `apk_app/app/src/main/assets/`, reescribe
+  las 6 URLs del CDN a `https://appassets.androidplatform.net/cdn/` y renombra
+  `web_src.tar.gz` → `web_src.gz.bin`).
+- **Compilar**: `cd apk_app && JAVA_HOME="/c/Program Files/Android/Android Studio/jbr" ./gradlew assembleRelease`
+- **Trampas del empaquetado** (todas sufridas, ver skill pygbag-web-port):
+  - El runtime lleva URLs del CDN oficial incrustadas (p.ej. `index-0.9.3-cp312.json`).
+    `MainActivity` intercepta el host `pygame-web.github.io` y sirve `/cdn/...`
+    desde los assets locales — **con CORS** (`Access-Control-Allow-Origin: *`),
+    sin ello el fetch cross-origin muere con "Failed to fetch".
+  - **El aapt de Android descomprime y renombra los assets `.gz`**: el runtime pide
+    `web_src.tar.gz` y en el paquete llegaba como `web_src.tar` ya descomprimido
+    (tarfile.ReadError). Solución: guardarlo como `web_src.gz.bin` (gzip intacto)
+    y servirlo para esa ruta desde `MainActivity`.
+  - Depurar el WebView: `WebView.setWebContentsDebuggingEnabled(true)` +
+    `adb forward tcp:9224 localabstract:webview_devtools_remote_<pid>` + CDP
+    (`Runtime.consoleAPICalled` tras `Page.reload` muestra los prints de Python).
+- **OJO (emulador)**: con `-gpu swiftshader_indirect` el arranque es lentisimo;
+  validar antes el conjunto de assets en Chrome de escritorio (http.server + CDP)
+  para distinguir "assets mal montados" de "emulador lento".
+
 ## Pendiente (siguiente paso del port)
 
 - **Guardado en web**: el FS del navegador no persiste; usar IDBFS/localStorage.
   (Consecuencia actual: la guía del primer turno sale en cada carga.)
-- **PWA/APK**: empaquetar `build/web` (service worker + manifest) y decidir TWA/WebView.
+- **APK**: falta confirmar el arranque completo en un movil real (en el emulador
+  con swiftshader el boot es extremadamente lento) y publicarlo en el hub.
 - **Rendimiento en móvil**: medido y confirmado bueno por el usuario.
 
 (Resuelto en esta iteración: joystick táctil; botones de pausa/DASH/FOGO visibles;
 música en web (vol a 0 fuera); mapas rediseñados con rejilla de oficina con sentido;
-aviso de girar el móvil; favicon repuesto tras el build.)
+aviso de girar el móvil; favicon repuesto tras el build; APK independiente compilado
+y con el arranque resuelto a nivel de assets.)
