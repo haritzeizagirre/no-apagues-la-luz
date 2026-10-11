@@ -78,6 +78,17 @@ def main() -> int:
     cmd = [sys.executable, "-m", "pygbag", "--ume_block", "0"]
     if tmpl.is_file():
         cmd += ["--template", str(tmpl)]
+    if "--lan" in args:
+        import socket
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        try:
+            s.connect(("8.8.8.8", 80))
+            lan_ip = s.getsockname()[0]
+        finally:
+            s.close()
+        cmd += ["--bind", lan_ip]
+        print(f"[web] servidor accesible en la red local: http://{lan_ip}:8000/")
+        print("[web] (abrelo desde el movil conectado a la misma wifi)")
     if "--build" in args:
         cmd.append("--build")
     cmd.append(".")

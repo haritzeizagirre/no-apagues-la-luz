@@ -97,6 +97,9 @@ class Input:
         self.mouse_released = False
         self.any_key = False
         self.text = ""
+        self.finger: tuple[float, float] | None = None   # dedo activo (movil/web)
+        self.finger_id = None
+        self.click_pos = (0, 0)   # posicion (ventana) del ultimo evento de raton/toque
 
     def begin(self):
         self.just = set()
@@ -116,9 +119,21 @@ class Input:
         elif ev.type == pygame.MOUSEBUTTONDOWN and ev.button == 1:
             self.mouse_down = True
             self.mouse_clicked = True
+            self.click_pos = ev.pos
+        elif ev.type == pygame.MOUSEMOTION:
+            self.click_pos = ev.pos
         elif ev.type == pygame.MOUSEBUTTONUP and ev.button == 1:
             self.mouse_down = False
             self.mouse_released = True
+        elif ev.type == pygame.FINGERDOWN:
+            if self.finger_id is None:
+                self.finger_id = ev.finger_id
+                self.finger = (ev.x, ev.y)
+        elif ev.type == pygame.FINGERMOTION and ev.finger_id == self.finger_id:
+            self.finger = (ev.x, ev.y)
+        elif ev.type == pygame.FINGERUP and ev.finger_id == self.finger_id:
+            self.finger_id = None
+            self.finger = None
 
     def held(self, key: int) -> bool:
         return self.keys.get(key, False)

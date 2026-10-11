@@ -11,7 +11,7 @@ import pygame
 
 from . import const as K
 from . import sprites as S
-from .core import ARENA_H, ARENA_W, Camera, Hash, Particles, Texts, clamp
+from .core import ARENA_H, ARENA_W, Camera, Hash, Particles, Texts, V, WEB, clamp
 from .entities import Enemy, Pickup, Player, Prop, Proj, Puddle, WeaponInst, make_boss, make_enemy
 from .content import ach, chars as CC, enemies as CE, items as CI, metaup
 from .content import maps as CMP
@@ -442,6 +442,22 @@ class RunWorld:
         p = self.player
         inp = self.app.input
         move = inp.move_vector()
+        # movil/web: el dedo manda -> caminar hacia donde tocas (FINGER nativo de SDL;
+        # si no hay dedo, vale el raton mantenido)
+        if WEB and move.length_squared() == 0:
+            aim = None
+            if inp.finger is not None:
+                sw, sh = self.app.window.get_size()
+                aim = (inp.finger[0] * sw, inp.finger[1] * sh)
+            elif inp.mouse_down:
+                # posicion del ultimo evento (fiable en web: el toque emula raton)
+                aim = ((inp.click_pos[0] - self.app.off[0]) / self.app.scale,
+                       (inp.click_pos[1] - self.app.off[1]) / self.app.scale)
+            if aim is not None:
+                sx, sy = self.cam.to_screen(p.x, p.y)
+                dx, dy = aim[0] - sx, aim[1] - sy
+                if dx * dx + dy * dy > 30 * 30:
+                    move = V(dx, dy).normalize()
         if move.length_squared() > 0:
             p.facing = move.x < 0
             p.walk_t += dt
