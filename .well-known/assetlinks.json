@@ -1,0 +1,8 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "io.github.haritzeizagirre.noapagueslaluz",
+    "sha256_cert_fingerprints": ["12D84F74261C723AA3422222719904DB04AC2767D38563A148566D556BB24DC1"]
+  }
+}]
