@@ -20,7 +20,7 @@ def _prep_web_settings() -> None:
         d = {}
         if p.exists():
             d = json.loads(p.read_text(encoding="utf-8"))
-        d.update({"win_w": 640, "win_h": 360, "vol_music": 0.0, "vol_sfx": 0.0, "seen_intro": True})
+        d.update({"seen_intro": True})
         p.write_text(json.dumps(d), encoding="utf-8")
     except Exception as e:
         print("[web] prep settings:", e, flush=True)
@@ -89,8 +89,9 @@ async def _amain() -> None:
             st = ""
             if w2 is not None and hasattr(w2, "stick_on"):
                 st = f" stick=({int(w2.stick_on)},{w2.stick_dx:.0f},{w2.stick_dy:.0f})"
+            au = f" vol={app.settings['vol_music']:.1f}/{app.settings['vol_sfx']:.1f} aud={int(app.audio.enabled)}"
             print(f"[web] frames={n} escena={type(app.scene).__name__} pos={pos} "
-                  f"md={int(inp.mouse_down)} dedo={inp.finger} clic={inp.click_pos}{st}", flush=True)
+                  f"md={int(inp.mouse_down)} dedo={inp.finger} clic={inp.click_pos}{st}{au}", flush=True)
         # patron canonico de pygbag: sleep(0) puro cede al navegador;
         # un timer (sleep(0.016)) NO resuelve en modo main-thread
         await asyncio.sleep(0)

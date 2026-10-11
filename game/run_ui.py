@@ -84,14 +84,6 @@ class RunScene(Scene):
         w = self.world
         g = self.gui
         g.begin()
-        # controles tactiles (web): pausa + acciones, solo en partida activa
-        if WEB and not self.paused and self.cards is None and self.tut_page == 0 and w.phase == "active":
-            if g.button(pygame.Rect(K.W - 34, 6, 28, 20), "II", "t_pausa", size=10):
-                self.paused = True
-            if g.button(pygame.Rect(K.W - 178, K.H - 76, 58, 26), "DASH", "t_dash", size=9):
-                self.app.input.press_virtual(pygame.K_LSHIFT)
-            if g.button(pygame.Rect(K.W - 112, K.H - 76, 58, 26), "FOGO", "t_fogo", size=9):
-                self.app.input.press_virtual(pygame.K_SPACE)
         if self._pend_fs:
             self._pend_fs = False
             self.app.toggle_fullscreen()
@@ -488,12 +480,28 @@ class RunScene(Scene):
             self.app.set_scene("sellos")
 
     # ------------------------------------------------------------- HUD
+    def _ui_touch(self):
+        """Botones tactiles (web). Se dibujan en draw(): el GUI dibuja al instante
+        y en update() el draw del mundo los taparia."""
+        if not (WEB and not self.paused and self.cards is None and self.tut_page == 0
+                and self.world.phase == "active"):
+            return
+        g = self.gui
+        if g.button(pygame.Rect(K.W - 36, 4, 32, 22), "II", "t_pausa", size=11):
+            self.paused = True
+        if g.button(pygame.Rect(K.W - 178, K.H - 76, 58, 26), "DASH", "t_dash", size=9):
+            self.app.input.press_virtual(pygame.K_LSHIFT)
+        if g.button(pygame.Rect(K.W - 112, K.H - 76, 58, 26), "FOGO", "t_fogo", size=9):
+            self.app.input.press_virtual(pygame.K_SPACE)
+
     def draw(self, surf):
         w = self.world
         w.draw(surf)
         if WEB:
             w.draw_stick(surf)
         self._draw_hud(surf)
+        if WEB:
+            self._ui_touch()
         if self.banner_t > 0 and self.banner_txt:
             a = min(1.0, self.banner_t / 0.5)
             size = 15 if len(self.banner_txt) < 40 else 12

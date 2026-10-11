@@ -280,6 +280,21 @@ function show_infobox() {
             margin: 0 auto 10px;
             animation: napal_glow 2.4s ease-in-out infinite;
         }
+
+        #napal_rotate {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 999997;
+            background: rgba(10, 13, 24, .92);
+            color: #e8b04a;
+            font-family: "PressStart2P", monospace;
+            font-size: 18px;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 24px;
+        }
         div.emscripten { text-align: center; }
         div.emscripten_border { border: 1px solid black; }
         div.thick_border { border: 4px solid black; }
@@ -374,6 +389,8 @@ height="{{cookiecutter.height}}px"
     </canvas>
 
     <div id="infobox">preparando la oficina…</div>
+
+    <div id="napal_rotate">↻ GIRA EL MÓVIL PARA JUGAR</div>
 
     <div id=html></div>
 
@@ -536,6 +553,18 @@ frameborder="1"
     window.addEventListener('resize', function () { window.napal_fit_canvas(); });
     document.addEventListener('fullscreenchange', function () { window.napal_fit_canvas(); });
     setInterval(function () { window.napal_fit_canvas(); }, 700);
+    // aviso de girar el movil en vertical (solo tactil)
+    window.napal_orientation = function () {
+        const d = document.getElementById('napal_rotate');
+        if (!d) return;
+        const touch = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+        const portrait = window.innerHeight > window.innerWidth;
+        const started = !!document.fullscreenElement || (document.querySelector('canvas.emscripten') || {}).width > 2;
+        d.style.display = (touch && portrait && started) ? 'flex' : 'none';
+    };
+    window.addEventListener('resize', function () { window.napal_orientation(); });
+    window.addEventListener('orientationchange', function () { window.napal_orientation(); });
+    setInterval(function () { window.napal_orientation(); }, 800);
 
     </script>
 

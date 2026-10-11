@@ -106,13 +106,16 @@ class Input:
         """Simula la pulsacion de una tecla este frame (botones tactiles de la UI)."""
         self.virt_just.add(key)
 
+    def clear_virtual(self) -> None:
+        """La llama el frame tras dibujar (los botones tactiles viven en draw())."""
+        self.virt_just = set()
+
     def begin(self):
         self.just = set()
         self.mouse_clicked = False
         self.mouse_released = False
         self.any_key = False
         self.text = ""
-        self.virt_just = set()
 
     def handle(self, ev: pygame.event.Event):
         if ev.type == pygame.KEYDOWN:
@@ -676,6 +679,7 @@ class App:
                     gui.begin()
             self.screen.fill(K.C["negro"])
             self.scene.draw(self.screen)
+        self.input.clear_virtual()   # los botones tactiles (draw) valen hasta el proximo update
         self.audio.update(dt)
         if self.settings["show_fps"] or self.debug:
             self.fps_acc += dt

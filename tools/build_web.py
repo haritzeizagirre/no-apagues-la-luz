@@ -97,7 +97,16 @@ def main() -> int:
         cmd.append("--build")
     cmd.append(".")
     print("[web] pygbag:", " ".join(cmd[2:]))
-    return subprocess.call(cmd, cwd=WEB)
+    rc = subprocess.call(cmd, cwd=WEB)
+    # pygbag --build re-escribe favicon.png con su rana por defecto DESPUES de
+    # nuestra copia: reponer la lampara al terminar el build
+    web_icon = ROOT / "assets" / "icon_web.png"
+    out_dir = WEB / "build" / "web"
+    if web_icon.exists() and out_dir.is_dir():
+        shutil.copy2(web_icon, out_dir / "favicon.png")
+        shutil.copy2(web_icon, out_dir / "icon_napal.png")
+        print("[web] favicon restaurado (lampara) tras el build")
+    return rc
 
 
 if __name__ == "__main__":
