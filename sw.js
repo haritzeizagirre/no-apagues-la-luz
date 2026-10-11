@@ -2,10 +2,10 @@
  * Estrategia: cache-first con relleno en segundo plano. El nucleo se precarga
  * al instalar; todo lo que el juego pida despues (runtime CDN, apk, fuentes)
  * se guarda al vuelo -> la segunda visita y el juego offline funcionan.
- * 1791743505 lo sustituye tools/build_web.py por un sello de tiempo en cada build:
+ * 1791746660 lo sustituye tools/build_web.py por un sello de tiempo en cada build:
  * cache nueva en cada version (los archivos viejos se purgan al activar).
  */
-const CACHE = 'napal-1791743505';
+const CACHE = 'napal-1791746660';
 const CORE = ['./', 'index.html', 'manifest.webmanifest', 'icon_192.png',
               'icon_512.png', 'icon_maskable.png', 'icon_napal.png', 'favicon.png'];
 
