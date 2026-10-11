@@ -42,12 +42,14 @@ async def _amain() -> None:
             pass
 
     beacon("web:start")
-    _loader("preparando la oficina…")
+    # OJO: el puente Python->JS del runtime destroza el UTF-8 (mojibake); estos
+    # textos van en ASCII puro ("..." en vez de "…", "lampara" sin tilde)
+    _loader("preparando la oficina...")
     _prep_web_settings()
     beacon("web:settings_ok")
     from desktop_entry import build_app
     app = build_app(headless=False)
-    _loader("encendiendo la lámpara…")
+    _loader("encendiendo la lampara...")
     # en web el limitador de FPS del reloj puede bloquear el hilo principal:
     import time as _t
 
@@ -90,7 +92,7 @@ async def _amain() -> None:
             st = ""
             if w2 is not None and hasattr(w2, "stick_on"):
                 st = f" stick=({int(w2.stick_on)},{w2.stick_dx:.0f},{w2.stick_dy:.0f})"
-            au = f" vol={app.settings['vol_music']:.1f}/{app.settings['vol_sfx']:.1f} aud={int(app.audio.enabled)}"
+            au = f" vol={app.settings['vol_music']:.1f}/{app.settings['vol_sfx']:.1f} aud={int(app.audio.enabled)} taps={inp.tap_count}"
             print(f"[web] frames={n} escena={type(app.scene).__name__} pos={pos} "
                   f"md={int(inp.mouse_down)} dedo={inp.finger} clic={inp.click_pos}{st}{au}", flush=True)
         # patron canonico de pygbag: sleep(0) puro cede al navegador;

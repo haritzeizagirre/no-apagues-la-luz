@@ -101,6 +101,7 @@ class Input:
         self.finger_id = None
         self.has_touch = False   # True en cuanto llega un evento de dedo (deteccion tactil)
         self.taps: list[tuple[float, float]] = []   # dedos que bajaron este frame (botones)
+        self.tap_count = 0   # total de FINGERDOWN (diagnostico: el 2º dedo debe llegar)
         self.click_pos = (0, 0)   # posicion (ventana) del ultimo evento de raton/toque
         self.virt_just: set[int] = set()   # teclas "virtuales" (botones tactiles)
 
@@ -139,6 +140,7 @@ class Input:
             self.mouse_released = True
         elif ev.type == pygame.FINGERDOWN:
             self.has_touch = True
+            self.tap_count += 1
             self.taps.append((ev.x, ev.y))
             if self.finger_id is None:
                 self.finger_id = ev.finger_id

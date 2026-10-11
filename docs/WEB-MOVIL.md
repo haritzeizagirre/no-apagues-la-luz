@@ -57,29 +57,37 @@ partida en marcha → movimiento con teclado a tiempo real; clics y táctil func
 
 - **Movimiento = joystick virtual** abajo-izquierda (`game/world.py`: `STICK_BASE`,
   `STICK_ZONE`, `_stick_move`, `draw_stick`). El dedo dentro de la zona genera un
-  vector (dx,dy); velocidad proporcional. Se abandonó "camina hacia el dedo".
+  vector (dx,dy); velocidad proporcional.
 - **Botones táctiles** (`game/run_ui.py` `_ui_touch`): pausa (II, arriba-derecha),
-  DASH y FOGO (abajo-derecha). Se registran en `draw()`, NUNCA en `update()`: el GUI
-  dibuja el botón en el momento de la llamada y el draw del mundo lo taparía
-  (síntoma: "se puede pulsar pero no se ve el botón").
-- **Teclas virtuales** (`Input.press_virtual`): el ciclo correcto es `begin()` sin
-  borrarlas y `clear_virtual()` al final del frame (tras `scene.draw()`), para que
-  el mundo las vea en el update del frame siguiente.
-- **Móvil en vertical**: aviso "GIRA EL MÓVIL PARA JUGAR" en la plantilla (táctil +
-  vertical + canvas arrancado). En horizontal (16:9) el juego ocupa toda la pantalla.
+  DASH y FOGO (abajo-derecha, 92×44). Se registran en `draw()`, NUNCA en `update()`
+  (el GUI dibuja al instante y el draw del mundo los taparía).
+- **Segundo dedo (crítico)**: SDL solo emula el ratón con el puntero primario — con
+  el joystick sujeto, un segundo dedo en DASH/FOGO no genera clic. Los botones
+  escuchan también FINGERDOWN directos (`Input.taps` + hit-test con coordenadas
+  convertidas ventana→juego).
+- **Teclas virtuales** (`Input.press_virtual`): limpiar DESPUÉS del update del
+  frame siguiente (update → clear_virtual → draw); limpiarlas tras draw las mata.
+- **Detección de dispositivo**: `has_touch` (True al primer FINGERDOWN) + ajuste
+  TÁCTILES: AUTO/SÍ/NO → en navegador de PC no aparecen joystick ni botones. La
+  guía de la primera ronda cambia el texto de controles según el modo.
+- **Móvil en vertical**: aviso "GIRA EL MÓVIL PARA JUGAR" (al tocarlo → pantalla
+  completa). En horizontal el juego llena la pantalla; si no, ajuste LLENAR.
 
 ## Trampas de audio/settings/staging (lecciones)
 
 - **El staging se re-copia en CADA build**: `build_web.py` copia `main_web.py` de la
-  RAÍZ a `build/web_src/main.py`. Los parches van SIEMPRE a la raíz; parchear la
-  copia del staging no sirve (el siguiente build la pisa).
+  RAÍZ a `build/web_src/main.py`. Los parches van SIEMPRE a la raíz.
 - **Nunca dejes `vol_music`/`vol_sfx` a 0 en el prep de settings web** — deja el
-  juego mudo (pasó: resto de las pruebas tempranas). En web el prep solo toca
-  `seen_intro`.
+  juego mudo. En web el prep solo toca lo imprescindible.
+- **Audio móvil = gate del gesto (MM.UME)**: `--ume_block 0` arranca sin gesto →
+  AudioContext suspendido → mudo en móvil. Con el default, el template espera al
+  primer toque ("▶ TOCA PARA EMPEZAR" en el infobox) y el mixer nace tras el gesto.
+- **Música "saturada"**: OGG 22050 mono q4 suena mal; música → 44100 q6 (los sfx
+  cortos valen a 22050 q4). El staging NO re-convierte OGGs existentes: borrarlos y
+  reponer los WAV originales.
 - **Favicon**: `pygbag --build` re-escribe `favicon.png` (su rana) DESPUÉS de
   cualquier copia previa → `build_web.py` la repone tras el subprocess.
-- Audio web: el AudioContext necesita un gesto; SDL lo reanuda al primer toque.
-  Para diagnosticar "no suena": `vol=... aud=...` en el log cada 300 frames.
+- Diagnóstico: `vol=... aud=... taps=...` en el log cada 300 frames.
 
 ## Pendiente (siguiente paso del port)
 

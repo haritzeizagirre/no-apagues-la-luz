@@ -62,7 +62,13 @@ class Audio:
         try:
             # 44100 estéreo: es la frecuencia nativa de los OGG de Kenney; con
             # 22050 mono SDL_mixer se cuelga al reprocesar (access violation real).
-            pygame.mixer.pre_init(44100, -16, 2, 256)
+            # Buffer: 256 vale en escritorio (audio en hilo propio), pero en WASM
+            # el audio comparte el hilo con el bucle del juego (>100 fps) y un
+            # buffer tan corto se queda sin datos -> crujido "saturado". 2048 (46
+            # ms) en web.
+            import sys as _sys
+            buf = 2048 if _sys.platform == "emscripten" else 256
+            pygame.mixer.pre_init(44100, -16, 2, buf)
             pygame.mixer.init()
             pygame.mixer.set_num_channels(28)
             self.enabled = True
