@@ -309,6 +309,24 @@ function show_infobox() {
             font-size: 11px;
             color: #9aa4c8;
         }
+
+        #napal_install {
+            display: none;
+            position: fixed;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 999998;
+            background: #e8b04a;
+            color: #14181f;
+            font-family: "PressStart2P", monospace;
+            font-size: 11px;
+            padding: 10px 18px;
+            border-radius: 6px;
+            cursor: pointer;
+            box-shadow: 0 0 0 3px rgba(20, 24, 31, .8), 0 6px 18px rgba(0, 0, 0, .5);
+            animation: napal_glow 2.4s ease-in-out infinite;
+        }
         div.emscripten { text-align: center; }
         div.emscripten_border { border: 1px solid black; }
         div.thick_border { border: 4px solid black; }
@@ -405,6 +423,8 @@ height="{{cookiecutter.height}}px"
     <div id="infobox">preparando la oficina…</div>
 
     <div id="napal_rotate" onclick="window.napal_rotate_tap()">GIRA EL MÓVIL PARA JUGAR<span>(TOCA PARA PANTALLA COMPLETA)</span></div>
+
+    <div id="napal_install" onclick="window.napal_install_now()">INSTALAR APP</div>
 
     <div id=html></div>
 
@@ -606,6 +626,25 @@ frameborder="1"
             navigator.serviceWorker.register('sw.js').catch(function () {});
         });
     }
+
+    // PWA: boton INSTALAR APP (aparece solo cuando el navegador permite instalar)
+    window.napal_deferred_install = null;
+    window.addEventListener('beforeinstallprompt', function (e) {
+        e.preventDefault();
+        window.napal_deferred_install = e;
+        const b = document.getElementById('napal_install');
+        if (b) b.style.display = 'block';
+    });
+    window.napal_install_now = function () {
+        const e = window.napal_deferred_install;
+        const b = document.getElementById('napal_install');
+        if (b) b.style.display = 'none';
+        if (e) { e.prompt(); window.napal_deferred_install = null; }
+    };
+    window.addEventListener('appinstalled', function () {
+        const b = document.getElementById('napal_install');
+        if (b) b.style.display = 'none';
+    });
 
     </script>
 
