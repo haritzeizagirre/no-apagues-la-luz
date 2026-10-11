@@ -49,3 +49,8 @@ if __name__ == "__main__":
     out = os.path.join(K.RES, "assets", "icon.ico")
     write_ico(out)
     print(f"[icono] {out} ({os.path.getsize(out)} bytes)")
+    # favicon web (lo copia tools/build_web.py a build/web/favicon.png)
+    web = os.path.join(K.RES, "assets", "icon_web.png")
+    with open(web, "wb") as f:
+        f.write(build_icon_png(64))
+    print(f"[icono] {web} ({os.path.getsize(web)} bytes)")

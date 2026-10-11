@@ -48,6 +48,16 @@ def stage() -> None:
                        check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         if ogg.exists():
             w.unlink()
+    # favicon web = lampara del juego (la plantilla de pygbag trae el icono por
+    # defecto de pygame-ce, la "rana"; se sustituye favicon.png de la raiz servida)
+    web_icon = ROOT / "assets" / "icon_web.png"
+    if not web_icon.exists():
+        subprocess.call([sys.executable, str(ROOT / "tools" / "make_icon.py")])
+    out_dir = WEB / "build" / "web"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    if web_icon.exists():
+        shutil.copy2(web_icon, out_dir / "favicon.png")
+        print("[web] favicon = lampara del juego")
     print(f"[web] montaje listo en {WEB}")
 
 
